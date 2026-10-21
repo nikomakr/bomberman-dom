@@ -23,5 +23,4 @@ coverage.*
 Thumbs.db
 
 # Other
-*.sh
 *.json
