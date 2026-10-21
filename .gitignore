@@ -1,0 +1,27 @@
+# Go build output
+/bin/
+/bomberman-dom
+*.exe
+*.test
+*.out
+coverage.*
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Other
+*.sh
+*.json
