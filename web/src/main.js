@@ -1,5 +1,6 @@
-import { createRouter } from "/framework/index.js";
+import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
+import { Board } from "./views/Board.js";
 
 /**
 
@@ -24,4 +25,11 @@ createRouter({
       if (hasNickname(routerStore)) routerStore.setState({ page: "game" });
     },
   },
+});
+
+createApp({
+  root: document.getElementById('board'),
+  store,
+  view: Board,
+  select: (state) => state.page,
 });
