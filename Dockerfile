@@ -4,7 +4,7 @@ FROM golang:1.25.2-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod ./
+COPY go.mod go.sum* ./
 COPY server ./server
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bomberman-dom ./server
