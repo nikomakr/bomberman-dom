@@ -1,0 +1,75 @@
+:root {
+  /* Tile size: set once, used everywhere. */
+  --tile: 48px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: system-ui, sans-serif;
+  background: #1b1b2f;
+  color: #f1f1f1;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+#app,
+#hud,
+#board,
+#chat {
+  width: 100%;
+  max-width: 960px;
+}
+
+#board {
+  position: relative;
+  overflow: auto;
+}
+
+/* ---------- Tiles: one image, 12 tiles in a row ---------- */
+
+.tile {
+  display: block;
+  width: var(--tile);
+  height: var(--tile);
+  background-image: url('../assets/tileset.png');
+  background-repeat: no-repeat;
+  background-size: calc(var(--tile) * 12) var(--tile);
+  image-rendering: pixelated;
+}
+
+.tile-floor      { background-position: 0 0; }
+.tile-wall       { background-position: calc(var(--tile) * -1) 0; }
+.tile-block      { background-position: calc(var(--tile) * -2) 0; }
+.tile-bomb       { background-position: calc(var(--tile) * -3) 0; }
+.tile-flame      { background-position: calc(var(--tile) * -4) 0; }
+.tile-power-bomb { background-position: calc(var(--tile) * -5) 0; }
+.tile-power-flame { background-position: calc(var(--tile) * -6) 0; }
+.tile-power-speed { background-position: calc(var(--tile) * -7) 0; }
+.tile-player-1   { background-position: calc(var(--tile) * -8) 0; }
+.tile-player-2   { background-position: calc(var(--tile) * -9) 0; }
+.tile-player-3   { background-position: calc(var(--tile) * -10) 0; }
+.tile-player-4   { background-position: calc(var(--tile) * -11) 0; }
+
+/* ---------- Moving elements: moved with transform only ----------
+   Set --x and --y (in tiles) on the element. Its anchor at the corner of
+   #board never changes; only the transform does. */
+
+.entity {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(calc(var(--x, 0) * var(--tile)), calc(var(--y, 0) * var(--tile)));
+  transition: transform 120ms linear;
+}
