@@ -1,4 +1,4 @@
-import { createStore } from "../framework/index.js";
+import { createStore } from "/framework/index.js";
 
 // The one store shared by every page.
 export const store = createStore({
