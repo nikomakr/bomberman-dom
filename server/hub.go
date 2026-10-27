@@ -5,7 +5,8 @@ import (
 	"sync"
 )
 
-// Hub maintains the set of active clients and broadcasts messages to the clients. Guards access to the clients map with a mutex.
+// Hub maintains the set of active clients and broadcasts messages to the clients.
+// Guards access to the clients map with a mutex.
 type Hub struct {
 	mu      sync.RWMutex
 	clients map[*Client]bool
@@ -36,17 +37,33 @@ func (h *Hub) unregister(client *Client) {
 	}
 }
 
-// broadcast sends a message to all clients in the hub's clients map. It uses a read lock to allow concurrent broadcasts while preventing modifications to the clients map.
+// broadcast sends a message to all clients in the hub's clients map.
 func (h *Hub) broadcast(message []byte) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	for client := range h.clients {
-		select {
-		case client.send <- message:
-		default:
-			log.Printf("Send queue failed for client, closing connection")
-			close(client.send)
-		}
+		h.queue(client, message)
+	}
+}
+
+// sendTo queues a message for one specific client as long as the client is still registered in the hub.
+func (h *Hub) sendTo(client *Client, message []byte) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if _, ok := h.clients[client]; ok {
+		h.queue(client, message)
+	}
+}
+
+// queue sends a message to a client's send channel. If the channel is full, it logs a warning and closes the connection.
+func (h *Hub) queue(client *Client, message []byte) {
+	select {
+	case client.send <- message:
+	default:
+		log.Printf("send queue full for client, closing connection")
+		delete(h.clients, client)
+		close(client.send)
 	}
 }
