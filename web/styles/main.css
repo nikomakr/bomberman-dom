@@ -43,7 +43,7 @@ body {
   display: block;
   width: var(--tile);
   height: var(--tile);
-  background-image: url('../assets/tileset.png');
+  background-image: url('/assets/tileset.png');
   background-repeat: no-repeat;
   background-size: calc(var(--tile) * 12) var(--tile);
   image-rendering: pixelated;

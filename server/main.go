@@ -21,14 +21,14 @@ var upgrader = websocket.Upgrader{
 }
 
 // serveWS upgrades one browser connection and starts its read and write goroutines.
-func serveWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func serveWS(hub *Hub, lobby *Lobby, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("upgrade failed: %v", err)
 		return
 	}
 
-	client := newClient(hub, conn)
+	client := newClient(hub, lobby, conn)
 	hub.register(client)
 	log.Printf("client connected")
 
@@ -48,10 +48,12 @@ func main() {
 
 	hub := newHub()
 
+	lobby := NewLobby(hub, DefaultLobbyConfig())
+	go lobby.Run()
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir(webDir)))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWS(hub, w, r)
+		serveWS(hub, lobby, w, r)
 	})
 
 	addr := ":" + port
