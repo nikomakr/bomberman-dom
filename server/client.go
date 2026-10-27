@@ -18,19 +18,22 @@ const (
 
 // Client is one connected browser: its connection and its send queue.
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub   *Hub
+	lobby *Lobby
+	conn  *websocket.Conn
+	send  chan []byte
 }
 
 // newClient creates a client for a new connection.
-func newClient(hub *Hub, conn *websocket.Conn) *Client {
-	return &Client{hub: hub, conn: conn, send: make(chan []byte, sendQueueSize)}
+func newClient(hub *Hub, lobby *Lobby, conn *websocket.Conn) *Client {
+	return &Client{hub: hub, lobby: lobby, conn: conn, send: make(chan []byte, sendQueueSize)}
 }
 
-// readPump reads messages from the browser until the connection closes, then removes the client from the hub.
+// readPump reads messages from the browser until the connection closes,
+// then removes the client from the lobby and the hub.
 func (c *Client) readPump() {
 	defer func() {
+		c.lobby.Leave(c)
 		c.hub.unregister(c)
 		c.conn.Close()
 	}()
@@ -53,7 +56,8 @@ func (c *Client) readPump() {
 	}
 }
 
-// handle decodes one message. Invalid JSON and unknown types are logged and ignored, so a bad message never stops the server.
+// handle decodes one message and passes it on. Invalid JSON and unknown
+// types are logged and ignored, so a bad message never stops the server.
 func (c *Client) handle(data []byte) {
 	var msg Message
 	if err := json.Unmarshal(data, &msg); err != nil {
@@ -64,7 +68,18 @@ func (c *Client) handle(data []byte) {
 		log.Printf("ignored unknown message type %q", msg.Type)
 		return
 	}
-	log.Printf("received %q", msg.Type)
+
+	switch msg.Type {
+	case TypeJoin:
+		nickname, ok := decodeJoin(msg.Data)
+		if !ok {
+			log.Printf("ignored join with invalid data")
+			return
+		}
+		c.lobby.Join(c, nickname)
+	default:
+		log.Printf("received %q", msg.Type)
+	}
 }
 
 // writePump sends queued messages to the browser and pings it regularly.
