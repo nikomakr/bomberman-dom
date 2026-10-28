@@ -78,6 +78,7 @@ type Lobby struct {
 
 	joins  chan joinRequest
 	leaves chan *Client
+	chats  chan chatRequest
 
 	players     map[*Client]Player
 	order       []*Client
@@ -94,6 +95,7 @@ func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 		config:  config,
 		joins:   make(chan joinRequest),
 		leaves:  make(chan *Client),
+		chats:   make(chan chatRequest),
 		players: make(map[*Client]Player),
 		phase:   phaseWaiting,
 	}
@@ -109,7 +111,7 @@ func (l *Lobby) Leave(client *Client) {
 	l.leaves <- client
 }
 
-// Run handles one event at a time: a join, a leave or a timer step.
+// Run handles one event at a time: a join, a leave, a chat or a timer step.
 func (l *Lobby) Run() {
 	for {
 		select {
@@ -117,6 +119,8 @@ func (l *Lobby) Run() {
 			l.join(req)
 		case client := <-l.leaves:
 			l.leave(client)
+		case req := <-l.chats:
+			l.chat(req)
 		case <-l.tickChannel():
 			l.onTick()
 		}
