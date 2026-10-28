@@ -77,6 +77,13 @@ func (c *Client) handle(data []byte) {
 			return
 		}
 		c.lobby.Join(c, nickname)
+	case TypeChat:
+		text, ok := decodeChat(msg.Data)
+		if !ok {
+			log.Printf("ignored chat with invalid data")
+			return
+		}
+		c.lobby.Chat(c, text)
 	default:
 		log.Printf("received %q", msg.Type)
 	}
