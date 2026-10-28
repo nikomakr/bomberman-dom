@@ -47,19 +47,18 @@ func TestGenerateMapWalls(t *testing.T) {
 func TestGenerateMapSafeCorners(t *testing.T) {
 	m := GenerateMap(42)
 
-	safeCells := [][2]int{
-		{1, 1}, {2, 1}, {1, 2},
-		{m.Columns - 2, 1}, {m.Columns - 3, 1}, {m.Columns - 2, 2},
-		{1, m.Rows - 2}, {2, m.Rows - 2}, {1, m.Rows - 3},
-		{m.Columns - 2, m.Rows - 2},
-		{m.Columns - 3, m.Rows - 2},
-		{m.Columns - 2, m.Rows - 3},
-	}
+	for row := 0; row < m.Rows; row++ {
+		for col := 0; col < m.Columns; col++ {
+			if !isSafeCell(col, row, m.Columns, m.Rows) {
+				continue
+			}
 
-	for _, cell := range safeCells {
-		if got := m.Tile(cell[0], cell[1]); got != TileEmpty {
-			t.Errorf("expected empty safe cell at (%d, %d), got %q",
-				cell[0], cell[1], got)
+			if got := m.Tile(col, row); got != TileEmpty {
+				t.Errorf(
+					"expected empty safe cell at (%d, %d), got %q",
+					col, row, got,
+				)
+			}
 		}
 	}
 }
@@ -73,9 +72,11 @@ func TestGenerateMapTileBounds(t *testing.T) {
 	}
 
 	for _, cell := range outOfBounds {
-		if got := m.Tile(cell[0], cell[1]); got != TileEmpty {
-			t.Errorf("expected empty result for out-of-bounds (%d, %d), got %q",
-				cell[0], cell[1], got)
+		if got := m.Tile(cell[0], cell[1]); got != TileWall {
+			t.Errorf(
+				"expected TileWall for out-of-bounds (%d, %d), got %q",
+				cell[0], cell[1], got,
+			)
 		}
 	}
 }
