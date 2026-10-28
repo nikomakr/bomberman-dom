@@ -18,19 +18,19 @@ export function send(type, data) {
 }
 
 // One dispatch table: incoming message type -> store action.
-const dispatch = {
+const dispatch = Object.freeze({
   lobby: (data) => setPlayers(data.players),
   countdown: (data) => setCountdown(data.seconds),
   chat: (data) => addMessage(data),
   error: (data) => setError(data.message),
   start: (data) => startGame(data.players),
-};
-
-socket.addEventListener("open", () => {
-  setConnection("open");
 });
 
-socket.addEventListener("message", (event) => {
+socket.onopen = () => {
+  setConnection("open");
+};
+
+socket.onmessage = (event) => {
   let message;
 
   try {
@@ -43,14 +43,13 @@ socket.addEventListener("message", (event) => {
     return;
   }
 
-  const action = dispatch[message.type];
-
-  // Unknown message types are ignored.
-  if (typeof action === "function") {
-    action(message.data);
+  if (!Object.hasOwn(dispatch, message.type)) {
+    return;
   }
-});
 
-socket.addEventListener("close", () => {
+  dispatch[message.type](message.data);
+};
+
+socket.onclose = () => {
   setConnection("closed");
-});
+};
