@@ -26,10 +26,10 @@ type Map struct {
 }
 
 // Tile returns the tile at the given column and row.
-// Out-of-bounds coordinates return an empty tile.
+// Out-of-bounds coordinates are treated as walls.
 func (m Map) Tile(col, row int) TileType {
 	if col < 0 || col >= m.Columns || row < 0 || row >= m.Rows {
-		return TileEmpty
+		return TileWall
 	}
 
 	return m.Tiles[row*m.Columns+col]
@@ -59,21 +59,6 @@ func GenerateMap(seed int64) Map {
 				m.Tiles[row*m.Columns+col] = TileWall
 			}
 		}
-	}
-
-	// Keep the three playable cells at each corner empty.
-	safeCells := [][2]int{
-		{1, 1}, {2, 1}, {1, 2},
-		{m.Columns - 2, 1}, {m.Columns - 3, 1}, {m.Columns - 2, 2},
-		{1, m.Rows - 2}, {2, m.Rows - 2}, {1, m.Rows - 3},
-		{m.Columns - 2, m.Rows - 2},
-		{m.Columns - 3, m.Rows - 2},
-		{m.Columns - 2, m.Rows - 3},
-	}
-
-	for _, cell := range safeCells {
-		col, row := cell[0], cell[1]
-		m.Tiles[row*m.Columns+col] = TileEmpty
 	}
 
 	// Fill eligible cells with seeded random blocks.
