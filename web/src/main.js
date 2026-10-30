@@ -1,7 +1,7 @@
 import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
 import { Board } from "./views/Board.js";
-
+import "./net/socket.js";
 /**
 
 Checks that the player has chosen a nickname. If not, sends them back to

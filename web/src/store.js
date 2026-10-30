@@ -2,11 +2,13 @@ import { createStore } from "/framework/index.js";
 
 // The one store shared by every page.
 export const store = createStore({
-  page: "home", // 'home' | 'lobby' | 'game'
+  page: "home",
   nickname: "",
   players: [],
-  countdown: null, // seconds left, or null when no countdown is running
+  countdown: null,
   messages: [],
+  error: null,
+  connection: "connecting",
 });
 
 // Actions: every change to the state goes through setState.
@@ -28,10 +30,28 @@ export function setCountdown(countdown) {
 }
 
 export function addMessage(message) {
-  store.setState((state) => ({ messages: [...state.messages, message] }));
+  store.setState((state) => ({
+    messages: [...state.messages, message],
+  }));
 }
 
 export function setMessages(messages) {
   store.setState({ messages });
 }
 
+export function setError(error) {
+  store.setState({ error });
+}
+
+export function setConnection(connection) {
+  store.setState({ connection });
+}
+
+export function startGame(players) {
+  store.setState({
+    page: "game",
+    players,
+    countdown: null,
+    error: null,
+  });
+}
