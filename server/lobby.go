@@ -58,10 +58,6 @@ type countdownData struct {
 	Seconds int   `json:"seconds"`
 }
 
-type startData struct {
-	Players []Player `json:"players"`
-}
-
 type errorData struct {
 	Message string `json:"message"`
 }
@@ -220,7 +216,13 @@ func (l *Lobby) start() {
 	l.stopTicker()
 	l.phase = phaseStarted
 	log.Printf("game starting with %d players", len(l.players))
-	l.sendToPlayers(TypeStart, startData{Players: l.playerList()})
+
+	entrants := make([]matchEntrant, 0, len(l.order))
+	for _, client := range l.order {
+		entrants = append(entrants, matchEntrant{client: client, player: l.players[client]})
+	}
+	match := NewMatch(l.hub, entrants, time.Now().UnixNano())
+	go match.Run()
 }
 
 // tickChannel returns the ticker's channel, or nil when no timer is running.
