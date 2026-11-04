@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+    import { mountNickname } from './src/views/Nickname.js';
+    import { store } from './src/store.js';
+    window.store = store;   // only so you can inspect it in the console
+    mountNickname();
+  </script>
+</body>
+</html>
