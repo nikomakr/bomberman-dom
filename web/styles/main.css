@@ -1,7 +1,6 @@
 :root {
   /* Tile size: set once, used everywhere. */
-  --tile: 48px;
-}
+--tile: min(48px, calc((100vw - 32px) / 15), calc((100vh - 220px) / 13));}
 
 * {
   box-sizing: border-box;
@@ -35,6 +34,24 @@ body {
 #board {
   position: relative;
   overflow: auto;
+}
+
+.board {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(15, var(--tile));
+  grid-template-rows: repeat(13, var(--tile));
+}
+
+.entities {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 /* ---------- Tiles: one image, 12 tiles in a row ---------- */

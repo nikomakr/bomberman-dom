@@ -47,10 +47,11 @@ export function setConnection(connection) {
   store.setState({ connection });
 }
 
-export function startGame(players) {
+export function startGame(data) {
   store.setState({
     page: "game",
-    players,
+    players: data.players,
+    map: data.map,
     countdown: null,
     error: null,
   });

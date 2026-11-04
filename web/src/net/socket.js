@@ -23,8 +23,7 @@ const dispatch = Object.freeze({
   countdown: (data) => setCountdown(data.seconds),
   chat: (data) => addMessage(data),
   error: (data) => setError(data.message),
-  start: (data) => startGame(data.players),
-});
+start: (data) => startGame(data),});
 
 socket.onopen = () => {
   setConnection("open");
