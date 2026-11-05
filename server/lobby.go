@@ -8,8 +8,20 @@ import (
 	"unicode/utf8"
 )
 
-// Lobby runs the waiting-room rules.
-// All lobby state is changed only inside Run, one event at a time, so no locks are needed.
+// Lobby runs the waiting-room rules. It moves through four phases:
+//
+//	waiting    0 or 1 player
+//	wait       2 or 3 players: a 20-second wait for more players
+//	countdown  a 10-second countdown before the game starts
+//	started    the game is running; nobody else can join
+//
+// waiting -> wait when a 2nd player joins; wait -> countdown after 20
+// seconds or when a 4th player joins (waiting -> countdown if 4 arrive at
+// once); wait or countdown -> waiting when fewer than 2 players remain;
+// countdown -> started when it reaches 0.
+//
+// All lobby state is changed only inside Run, one event at a time, so no
+// locks are needed.
 
 const (
 	maxPlayers     = 4
@@ -33,6 +45,7 @@ type LobbyConfig struct {
 	CountdownTicks int           // steps in the countdown phase
 }
 
+// DefaultLobbyConfig is the game's real timing: 20 s wait, 10 s countdown.
 func DefaultLobbyConfig() LobbyConfig {
 	return LobbyConfig{Tick: time.Second, WaitTicks: 20, CountdownTicks: 10}
 }
@@ -75,6 +88,9 @@ type Lobby struct {
 	joins  chan joinRequest
 	leaves chan *Client
 	chats  chan chatRequest
+	inputs chan playerInput
+
+	match *Match // the running match, or nil before the game starts
 
 	players     map[*Client]Player
 	order       []*Client
@@ -92,6 +108,7 @@ func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 		joins:   make(chan joinRequest),
 		leaves:  make(chan *Client),
 		chats:   make(chan chatRequest),
+		inputs:  make(chan playerInput),
 		players: make(map[*Client]Player),
 		phase:   phaseWaiting,
 	}
@@ -107,7 +124,13 @@ func (l *Lobby) Leave(client *Client) {
 	l.leaves <- client
 }
 
-// Run handles one event at a time: a join, a leave, a chat or a timer step.
+// Input passes a player's held directions to the running match, if any.
+func (l *Lobby) Input(client *Client, input inputData) {
+	l.inputs <- playerInput{client: client, input: input}
+}
+
+// Run handles one event at a time: a join, a leave, a chat, an input or a
+// timer step.
 func (l *Lobby) Run() {
 	for {
 		select {
@@ -117,6 +140,10 @@ func (l *Lobby) Run() {
 			l.leave(client)
 		case req := <-l.chats:
 			l.chat(req)
+		case in := <-l.inputs:
+			if l.match != nil {
+				l.match.Input(in.client, in.input)
+			}
 		case <-l.tickChannel():
 			l.onTick()
 		}
@@ -212,6 +239,7 @@ func (l *Lobby) setPhase(p phase, seconds int) {
 	l.sendCountdown()
 }
 
+// start hands the players over to a new match on a fresh map.
 func (l *Lobby) start() {
 	l.stopTicker()
 	l.phase = phaseStarted
@@ -221,7 +249,9 @@ func (l *Lobby) start() {
 	for _, client := range l.order {
 		entrants = append(entrants, matchEntrant{client: client, player: l.players[client]})
 	}
+
 	match := NewMatch(l.hub, entrants, time.Now().UnixNano())
+	l.match = match
 	go match.Run()
 }
 

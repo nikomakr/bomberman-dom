@@ -1,19 +1,22 @@
 import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
 import { Board } from "./views/Board.js";
+import { Nickname } from "./views/Nickname.js";
 import "./net/socket.js";
-/**
 
-Checks that the player has chosen a nickname. If not, sends them back to
-the nickname page.
-@param {{ getState: Function }} routerStore
-@returns {boolean} True if a nickname is set.
-*/
+/**
+ * Checks that the player has chosen a nickname. If not, sends them back to
+ * the nickname page.
+ *
+ * @param {{ getState: Function }} routerStore
+ * @returns {boolean} True if a nickname is set.
+ */
 function hasNickname(routerStore) {
   if (routerStore.getState().nickname) return true;
   location.hash = "#/";
   return false;
 }
+
 createRouter({
   store,
   routes: {
@@ -27,9 +30,17 @@ createRouter({
   },
 });
 
+// Pages in #app: one view per page. The waiting page joins here in BD-12.
 createApp({
-  root: document.getElementById('board'),
+  root: document.getElementById("app"),
+  store,
+  view: (state) => (state.page === "nickname" ? Nickname(state) : []),
+  select: (state) => ({ page: state.page, error: state.error }),
+});
+
+createApp({
+  root: document.getElementById("board"),
   store,
   view: Board,
-  select: (state) => state.page,
+  select: (state) => ({ page: state.page, map: state.error }),
 });
