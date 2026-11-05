@@ -1,10 +1,7 @@
-import { h, createApp, onKey } from "../../framework/index.js";
-import { store } from "../store.js";
+import { h, onKey } from "/framework/index.js";
 import { send } from "../net/socket.js";
 
-let app = null;
-
-// "14:05" from a timestamp (ISO string or milliseconds). Empty if there is none.
+// "14:05" from a timestamp in milliseconds. Empty if there is none.
 function formatTime(value) {
   if (value === undefined || value === null) return "";
   const date = new Date(value);
@@ -23,7 +20,7 @@ function renderMessage(message, index) {
   return h(
     "li",
     {
-      key: message.id ?? index,
+      key: `${message.time}-${index}`,
       class: "chat-message",
       // Keep the newest message in view (scrolls the list, not the page).
       onMount: (el) => {
@@ -40,16 +37,15 @@ function renderMessage(message, index) {
   );
 }
 
-function view(state) {
+/**
+ * The chat panel, shown on #/lobby and #/game.
+ *
+ * @param {{ messages: Array<{ nickname: string, text: string, time: number }> }} state
+ * @returns {Object} Virtual node.
+ */
+export function Chat(state) {
   return h("section", { class: "chat" }, [
-    h(
-      "ul",
-      {
-        class: "chat-messages",
-        style: { maxHeight: "200px", overflowY: "auto" },
-      },
-      state.messages.map(renderMessage),
-    ),
+    h("ul", { class: "chat-messages" }, state.messages.map(renderMessage)),
     h("input", {
       class: "chat-input",
       type: "text",
@@ -58,28 +54,4 @@ function view(state) {
       on: { keydown: onKey({ Enter: sendMessage }) },
     }),
   ]);
-}
-
-/**
- * Shows the chat panel in #chat. Called by the router for #/lobby and #/game.
- * Calling it again while the panel is already shown does nothing.
- *
- * @returns {{ unmount: Function }} Call unmount() to hide the panel (on #/).
- */
-export function mountChat() {
-  if (!app) {
-    app = createApp({
-      root: document.getElementById("chat"),
-      store,
-      select: (state) => state.messages,
-      view,
-    });
-  }
-
-  return {
-    unmount() {
-      if (app) app.unmount();
-      app = null;
-    },
-  };
 }
