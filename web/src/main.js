@@ -42,5 +42,5 @@ createApp({
   root: document.getElementById("board"),
   store,
   view: Board,
-  select: (state) => state.page,
+  select: (state) => ({ page: state.page, map: state.error }),
 });

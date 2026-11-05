@@ -32,9 +32,20 @@ export function getEntitiesLayer() {
 export function Board(state) {
   if (state.page !== 'game') return [];
 
+  const map = state.map;
+
+ const tiles = map
+  ? map.tiles.map((type, index) =>
+      h('div', {
+        key: index,
+        class: `tile tile-${type === 'empty' ? 'floor' : type}`,
+      }),
+    )
+  : [];
+
   return [
     h('div', { class: 'board', onMount: startLoop, onUnmount: stopLoop }, [
-      h('div', { class: 'tiles' }),
+      h('div', { class: 'tiles' }, tiles),
       h('div', { class: 'entities', ref: setEntitiesLayer }),
     ]),
   ];
