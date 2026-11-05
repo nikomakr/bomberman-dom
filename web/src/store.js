@@ -9,6 +9,7 @@ export const store = createStore({
   messages: [],
   error: null,
   connection: "connecting",
+  map: null,
 });
 
 // Actions: every change to the state goes through setState.

@@ -1,6 +1,7 @@
 :root {
   /* Tile size: set once, used everywhere. */
---tile: min(48px, calc((100vw - 32px) / 15), calc((100vh - 220px) / 13));}
+--tile: min(48px, calc((100vw - 32px) / 15), calc((100vh - 220px) / 13));
+}
 
 * {
   box-sizing: border-box;
