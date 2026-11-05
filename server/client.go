@@ -84,6 +84,13 @@ func (c *Client) handle(data []byte) {
 			return
 		}
 		c.lobby.Chat(c, text)
+	case TypeInput:
+		input, ok := decodeInput(msg.Data)
+		if !ok {
+			log.Printf("ignored input with invalid data")
+			return
+		}
+		c.lobby.Input(c, input)
 	default:
 		log.Printf("received %q", msg.Type)
 	}
