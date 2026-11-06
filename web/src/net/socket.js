@@ -20,10 +20,13 @@ export function send(type, data) {
 // One dispatch table: incoming message type -> store action.
 const dispatch = Object.freeze({
   lobby: (data) => setPlayers(data.players),
-  countdown: (data) => setCountdown(data.seconds),
+  countdown: (data) => setCountdown(data.phase, data.seconds),
   chat: (data) => addMessage(data),
   error: (data) => setError(data.message),
-  start: (data) => startGame(data),
+  start: (data) => {
+    startGame(data);
+    window.location.hash = "#/game";
+  },
 });
 
 socket.onopen = () => {

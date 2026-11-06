@@ -5,7 +5,7 @@ export const store = createStore({
   page: "home",
   nickname: "",
   players: [],
-  countdown: null,
+  countdown: null, // { phase, seconds } while the server counts, otherwise null
   messages: [],
   error: null,
   connection: "connecting",
@@ -26,8 +26,8 @@ export function setPlayers(players) {
   store.setState({ players });
 }
 
-export function setCountdown(countdown) {
-  store.setState({ countdown });
+export function setCountdown(phase, seconds) {
+  store.setState({ countdown: { phase, seconds } });
 }
 
 export function addMessage(message) {
