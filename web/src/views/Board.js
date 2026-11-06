@@ -44,7 +44,7 @@ export function Board(state) {
   : [];
 
   return [
-    h('div', { class: 'board', onMount: startLoop, onUnmount: stopLoop }, [
+    h('div', { class: 'board', onMount: () => startLoop(entitiesLayer), onUnmount: stopLoop }, [
       h('div', { class: 'tiles' }, tiles),
       h('div', { class: 'entities', ref: setEntitiesLayer }),
     ]),
