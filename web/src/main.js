@@ -1,6 +1,7 @@
 import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
 import { Board } from "./views/Board.js";
+import { Chat } from "./views/Chat.js";
 import { Nickname } from "./views/Nickname.js";
 import "./net/socket.js";
 
@@ -38,9 +39,17 @@ createApp({
   select: (state) => ({ page: state.page, error: state.error }),
 });
 
+// Chat in #chat: shown on the waiting page and in game, hidden on #/.
+createApp({
+  root: document.getElementById("chat"),
+  store,
+  view: (state) => (state.page === "nickname" ? [] : Chat(state)),
+  select: (state) => ({ page: state.page, messages: state.messages }),
+});
+
 createApp({
   root: document.getElementById("board"),
   store,
   view: Board,
-  select: (state) => ({ page: state.page, map: state.error }),
+  select: (state) => ({ page: state.page, map: state.map }),
 });

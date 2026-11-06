@@ -88,6 +88,14 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  transform: translate(calc(var(--x, 0) * var(--tile)), calc(var(--y, 0) * var(--tile)));
-  transition: transform 120ms linear;
+}
+
+/* Players move every frame, so only they get their own layer. */
+.entity[class*="tile-player-"] {
+  will-change: transform;
+}
+
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
 }
