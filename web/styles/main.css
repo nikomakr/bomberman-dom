@@ -91,3 +91,8 @@ body {
   transform: translate(calc(var(--x, 0) * var(--tile)), calc(var(--y, 0) * var(--tile)));
   transition: transform 120ms linear;
 }
+
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+}
