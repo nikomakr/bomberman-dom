@@ -9,7 +9,7 @@ const SHOW_FPS = true;
  * @param {number} delta - Milliseconds since the previous frame.
  */
 function update(delta) {
-  updateEntities(delta);
+  updateEntities();
 }
 
 const loop = createLoop(update);
@@ -47,4 +47,3 @@ export function stopLoop() {
     fpsMeter = null;
   }
 }
-EOF;

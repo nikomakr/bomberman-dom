@@ -1,97 +1,96 @@
-const pools = {
-  players: [],
-  bombs: [],
-  flames: [],
-  powerUps: [],
+// Element pools for everything that moves or appears on the board.
+// Elements are created once, then hidden and reused, so no new elements
+// are made mid-game. Positions are in tiles, like the server's.
+
+// The tileset class for each kind of entity.
+const CLASSES = {
+  players: (options) => `tile-player-${options.playerNumber || 1}`,
+  bombs: () => "tile-bomb",
+  flames: () => "tile-flame",
+  powerUps: (options) => `tile-power-${options.kind || "bomb"}`,
 };
 
+const pools = { players: [], bombs: [], flames: [], powerUps: [] };
 const activeEntities = new Set();
-
 let entitiesContainer = null;
 
-function createPooledElement(type) {
-  const element = document.createElement("div");
+/**
+ * Connects the pools to the board's .entities layer. A new board (after a
+ * restart) empties the pools, because their elements belonged to the old one.
+ *
+ * @param {HTMLElement} container - The .entities layer.
+ */
+export function initEntityPools(container) {
+  if (!container || container === entitiesContainer) return;
+  entitiesContainer = container;
+  activeEntities.clear();
+  Object.values(pools).forEach((pool) => {
+    pool.length = 0;
+  });
+}
 
-  element.classList.add("tile", "entity");
-
-  if (type === "players") {
-    element.classList.add("tile-player-1");
-  } else if (type === "bombs") {
-    element.classList.add("tile-bomb");
-  } else if (type === "flames") {
-    element.classList.add("tile-flame");
-  } else if (type === "powerUps") {
-    element.classList.add("tile-power-bomb");
-  }
-
-  element.style.display = "none";
+function createPooledElement() {
+  const element = document.createElement('div');
+  element.style.visibility = 'hidden';
   entitiesContainer.appendChild(element);
-
   return element;
 }
 
-export function initEntityPools(container) {
-  if (!container) return;
-  entitiesContainer = container;
-}
-
+/**
+ * Takes an element from the pool (or makes one) and shows it.
+ *
+ * @param {'players'|'bombs'|'flames'|'powerUps'} type
+ * @param {{ x?: number, y?: number, playerNumber?: number, kind?: string }} options
+ * @returns {Object|null} The entity, or null if the type or layer is missing.
+ */
 export function acquireEntity(type, options = {}) {
   const pool = pools[type];
-
   if (!pool || !entitiesContainer) return null;
 
-  const element = pool.pop() || createPooledElement(type);
+  const element = pool.pop() || createPooledElement();
+  element.className = `tile entity ${CLASSES[type](options)}`;
+  element.style.visibility = 'visible';
 
-  if (type === "players") {
-    const playerNumber = options.playerNumber || 1;
-    element.className = `tile entity tile-player-${playerNumber}`;
-    element.style.willChange = "transform";
-  } else if (type === "bombs") {
-    element.className = "tile entity tile-bomb";
-    element.style.willChange = "";
-  } else if (type === "flames") {
-    element.className = "tile entity tile-flame";
-    element.style.willChange = "";
-  } else if (type === "powerUps") {
-    const kind = options.kind || "bomb";
-    element.className = `tile entity tile-power-${kind}`;
-    element.style.willChange = "";
-  }
-
-  element.style.display = "block";
-
-  const entity = {
-    element,
-    type,
-    x: options.x || 0,
-    y: options.y || 0,
-  };
-
+  const entity = { element, type, x: options.x || 0, y: options.y || 0, dirty: true };
   activeEntities.add(entity);
-
   return entity;
 }
 
+/**
+ * Hides an entity and puts its element back in the pool.
+ *
+ * @param {Object} entity
+ */
 export function releaseEntity(entity) {
   if (!entity || !activeEntities.has(entity)) return;
-
   activeEntities.delete(entity);
-
-  entity.element.style.display = "none";
-  entity.element.style.transform = "";
-
+  entity.element.style.visibility = 'hidden';
   pools[entity.type].push(entity.element);
 }
 
+/**
+ * Sets where an entity should be, in tiles. It is drawn on the next frame.
+ *
+ * @param {Object} entity
+ * @param {number} x
+ * @param {number} y
+ */
 export function setEntityPosition(entity, x, y) {
   if (!entity || !activeEntities.has(entity)) return;
-
+  if (entity.x === x && entity.y === y) return;
   entity.x = x;
   entity.y = y;
+  entity.dirty = true;
 }
 
-export function updateEntities(delta) {
+/**
+ * Runs once per frame: moves only the entities whose position changed.
+ */
+export function updateEntities() {
   for (const entity of activeEntities) {
-    entity.element.style.transform = `translate3d(${entity.x}px, ${entity.y}px, 0)`;
+    if (!entity.dirty) continue;
+    entity.element.style.transform =
+      `translate3d(calc(${entity.x} * var(--tile)), calc(${entity.y} * var(--tile)), 0)`;
+    entity.dirty = false;
   }
 }
