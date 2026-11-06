@@ -2,6 +2,7 @@ import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
 import { Board } from "./views/Board.js";
 import { Chat } from "./views/Chat.js";
+import { Lobby } from "./views/Lobby.js";
 import { Nickname } from "./views/Nickname.js";
 import "./net/socket.js";
 
@@ -31,12 +32,21 @@ createRouter({
   },
 });
 
-// Pages in #app: one view per page. The waiting page joins here in BD-12.
+// Pages in #app: one view per page.
 createApp({
   root: document.getElementById("app"),
   store,
-  view: (state) => (state.page === "nickname" ? Nickname(state) : []),
-  select: (state) => ({ page: state.page, error: state.error }),
+  view: (state) => {
+    if (state.page === "nickname") return Nickname(state);
+    if (state.page === "lobby") return Lobby(state);
+    return [];
+  },
+  select: (state) => ({
+    page: state.page,
+    error: state.error,
+    players: state.players,
+    countdown: state.countdown,
+  }),
 });
 
 // Chat in #chat: shown on the waiting page and in game, hidden on #/.
