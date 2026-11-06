@@ -1,32 +1,47 @@
-import { createLoop, createFpsMeter } from '/framework/index.js';
+import { createLoop, createFpsMeter } from "/framework/index.js";
+import { initEntityPools, updateEntities } from "./entities.js";
 
-// Shows the frame rate while developing; turned off for the final build.
+// Shows the frame rate while developing.
 const SHOW_FPS = true;
 
 /**
- * Runs once per frame. Empty for now: movement and drawing come in later tickets.
- *
+ * Runs once per frame.
  * @param {number} delta - Milliseconds since the previous frame.
  */
-function update(delta) {}
+function update(delta) {
+  updateEntities();
+}
 
 const loop = createLoop(update);
 let fpsMeter = null;
 
 /**
- * Starts the frame loop (and the FPS meter during development).
+ * Starts the game loop and connects the entity pools.
+ * @param {HTMLElement} container - The .entities container.
  */
-export function startLoop() {
+export function startLoop(container) {
+  if (!container) {
+    console.error("Entity container was not provided.");
+    return;
+  }
+
+  initEntityPools(container);
+
   if (loop.isRunning()) return;
+
   loop.start();
-  if (SHOW_FPS) fpsMeter = createFpsMeter({ parent: document.body });
+
+  if (SHOW_FPS) {
+    fpsMeter = createFpsMeter({ parent: document.body });
+  }
 }
 
 /**
- * Stops the frame loop and removes the FPS meter.
+ * Stops the game loop and removes the FPS meter.
  */
 export function stopLoop() {
   loop.stop();
+
   if (fpsMeter) {
     fpsMeter.stop();
     fpsMeter = null;
