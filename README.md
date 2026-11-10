@@ -269,30 +269,6 @@ The following optional features can make the game even better:
 
 ## Using the mini-framework
 
-The client is built only with the mini-framework in `web/framework/`. No other
-JavaScript framework or library is used. Everything is imported from
-`/framework/index.js`.
-
-- **Elements:** `h(tag, props, children)` builds a virtual node. Props include
-  `class`, `key`, `on: { event: handler }` and `onMount`. A plain string child
-  becomes a text node, so text is never read as markup.
-- **Events:** handlers go in the `on` prop. `onKey({ Enter: handler })` runs a
-  handler for specific keys.
-- **State:** `createStore(initialState)` holds the shared state and
-  `store.setState(...)` changes it. Every change goes through an action in
-  `web/src/store.js`.
-- **Game loop:** `createLoop(update)` calls `update(delta)` once per frame, and
-  `createFpsMeter` shows the frame rate.
-
-Things that move on the board (players, bombs, flames, power-ups) are pooled
-elements from `web/src/game/entities.js`, placed with `transform` only. Player
-positions arrive in `state` messages about 20 times a second and are
-interpolated between the last two updates (`web/src/game/players.js`), so they
-move smoothly at 60 FPS.
-
-`scripts/check.sh` enforces the rules: no `addEventListener`, `innerHTML`,
-canvas, `style.left`, `style.top` or imports from packages or URLs.
-
 ## Architecture
 
 ## How to run
