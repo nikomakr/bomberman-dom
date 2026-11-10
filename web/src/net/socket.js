@@ -6,7 +6,7 @@ import {
   setConnection,
   startGame,
 } from "../store.js";
-import { startMatch, updatePlayers, removePlayer } from "../game/players.js";
+import { startMatch, updatePlayers } from "../game/players.js";
 
 const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
@@ -32,7 +32,6 @@ const dispatch = Object.freeze({
   // Positions change about 20 times a second, so they are kept outside the
   // store and do not re-render the page.
   state: (data) => updatePlayers(data),
-  leave: (data) => removePlayer(data.id),
 });
 
 socket.onopen = () => {

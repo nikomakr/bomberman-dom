@@ -79,6 +79,10 @@ export function updatePlayers(data) {
   for (const update of data.players) {
     const player = players.get(update.id);
     if (!player) continue;
+    if (update.lives === 0) {
+      removePlayer(update.id);
+      continue;
+    }
     player.from = player.to;
     player.to = { x: update.position.x, y: update.position.y };
     player.arrivedAt = now;
