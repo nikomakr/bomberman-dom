@@ -19,7 +19,7 @@ const (
 	baseSpeed       = 4.0  // tiles per second
 	cornerTolerance = 0.4  // how far off a corridor a player can be and still slide in
 	moveStep        = 0.05 // largest distance checked for collisions at once, in tiles
-	inputQueueSize  = 64 // how many unprocessed inputs can be queued per match
+	inputQueueSize  = 64   // how many unprocessed inputs can be queued per match
 )
 
 // playerColours gives each player a colour in join order.
@@ -73,6 +73,11 @@ type matchStartData struct {
 	PlayerSize float64        `json:"playerSize"`
 }
 
+// endData names the last player standing, or null when nobody is left.
+type endData struct {
+	Winner *Player `json:"winner"`
+}
+
 type stateData struct {
 	Tick    int            `json:"tick"`
 	Players []playerUpdate `json:"players,omitempty"`
@@ -91,16 +96,20 @@ type Match struct {
 	grid     *CollisionGrid
 	players  []*MatchPlayer
 	inputs   chan playerInput
+	leaves   chan *Client
+	onEnd    func() // called once when the match is over; may be nil
 	lastSent map[int]playerUpdate
 	tick     int
 }
 
 // NewMatch creates a match on a new map and places each player in a corner.
-func NewMatch(hub *Hub, entrants []matchEntrant, seed int64) *Match {
+func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Match {
 	m := &Match{
 		hub:      hub,
 		gameMap:  GenerateMap(seed),
 		inputs:   make(chan playerInput, inputQueueSize),
+		leaves:   make(chan *Client, maxPlayers),
+		onEnd:    onEnd,
 		lastSent: make(map[int]playerUpdate),
 	}
 	m.grid = NewCollisionGrid(&m.gameMap)
@@ -132,7 +141,17 @@ func (m *Match) Input(client *Client, input inputData) {
 	}
 }
 
-// Run sends the start message, then handles inputs and ticks one at a time.
+// Leave tells the match that a player has disconnected. It never blocks.
+func (m *Match) Leave(client *Client) {
+	select {
+	case m.leaves <- client:
+	default:
+		log.Printf("leave queue full, leave dropped")
+	}
+}
+
+// Run sends the start message, then handles inputs, leaves and ticks one at
+// a time. It returns when the match is over, so its goroutine stops.
 func (m *Match) Run() {
 	log.Printf("match started: %d players, %dx%d map", len(m.players), m.gameMap.Columns, m.gameMap.Rows)
 	m.sendToPlayers(TypeStart, matchStartData{Map: m.gameMap, Players: m.players, PlayerSize: playerSize})
@@ -144,19 +163,64 @@ func (m *Match) Run() {
 		select {
 		case in := <-m.inputs:
 			m.applyInput(in)
+		case client := <-m.leaves:
+			if m.removePlayer(client) {
+				return
+			}
 		case <-ticker.C:
 			m.step()
 		}
 	}
 }
 
-// applyInput keeps only the newest input per player. Inputs from unknown clients, from players who are out, or older than one already applied are ignored 
+// applyInput keeps only the newest input per player. Inputs from unknown clients, from players who are out, or older than one already applied are ignored
 func (m *Match) applyInput(in playerInput) {
 	p := m.playerFor(in.client)
 	if p == nil || p.Lives <= 0 || in.input.Seq <= p.held.Seq {
 		return
 	}
 	p.held = in.input
+}
+
+// removePlayer puts a player who left out of the game. It reports whether
+// the match is now over.
+func (m *Match) removePlayer(client *Client) bool {
+	p := m.playerFor(client)
+	if p == nil || p.Lives == 0 {
+		return false
+	}
+	p.Lives = 0
+	log.Printf("%q left the match", p.Nickname)
+	return m.checkForWinner()
+}
+
+// checkForWinner ends the match when one player or none is left. It sends
+// the final state and the end message, then tells the lobby.
+func (m *Match) checkForWinner() bool {
+	var alive []*MatchPlayer
+	for _, p := range m.players {
+		if p.Lives > 0 {
+			alive = append(alive, p)
+		}
+	}
+	if len(alive) > 1 {
+		return false
+	}
+
+	var winner *Player
+	if len(alive) == 1 {
+		winner = &Player{ID: alive[0].ID, Nickname: alive[0].Nickname}
+		log.Printf("match over: %q wins", winner.Nickname)
+	} else {
+		log.Printf("match over: no winner")
+	}
+
+	m.sendToPlayers(TypeState, stateData{Tick: m.tick, Players: m.changedPlayers()})
+	m.sendToPlayers(TypeEnd, endData{Winner: winner})
+	if m.onEnd != nil {
+		m.onEnd()
+	}
+	return true
 }
 
 // step moves every player still in the game, then sends what changed.
