@@ -25,3 +25,8 @@ Thumbs.db
 # Other
 *.json
 *.sh
+# Editor and manual backup files
+*.backup
+*.bak
+*.orig
+*~

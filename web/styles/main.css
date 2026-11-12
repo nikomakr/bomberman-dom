@@ -305,6 +305,23 @@ body {
   will-change: transform;
 }
 
+/* Nickname shown above each player. It is a child of the player, so it
+   moves with the player's transform and needs no work of its own. */
+.entity-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  background: var(--color-panel);
+  color: var(--color-text);
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* ---------- Game layout ---------- */
 
 body:has(.board) {
