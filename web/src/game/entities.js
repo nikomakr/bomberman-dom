@@ -29,9 +29,15 @@ export function initEntityPools(container) {
   });
 }
 
-function createPooledElement() {
-  const element = document.createElement('div');
-  element.style.visibility = 'hidden';
+function createPooledElement(type) {
+  const element = document.createElement("div");
+  element.style.visibility = "hidden";
+  if (type === "players") {
+    // The nickname label is a child of the player, so it moves with it.
+    const label = document.createElement("span");
+    label.className = "entity-label";
+    element.appendChild(label);
+  }
   entitiesContainer.appendChild(element);
   return element;
 }
@@ -40,18 +46,30 @@ function createPooledElement() {
  * Takes an element from the pool (or makes one) and shows it.
  *
  * @param {'players'|'bombs'|'flames'|'powerUps'} type
- * @param {{ x?: number, y?: number, playerNumber?: number, kind?: string }} options
+ * @param {{ x?: number, y?: number, playerNumber?: number, kind?: string, nickname?: string }} options
  * @returns {Object|null} The entity, or null if the type or layer is missing.
  */
 export function acquireEntity(type, options = {}) {
   const pool = pools[type];
   if (!pool || !entitiesContainer) return null;
 
-  const element = pool.pop() || createPooledElement();
+  const element = pool.pop() || createPooledElement(type);
   element.className = `tile entity ${CLASSES[type](options)}`;
-  element.style.visibility = 'visible';
+  element.style.visibility = "visible";
 
-  const entity = { element, type, x: options.x || 0, y: options.y || 0, dirty: true };
+  if (type === "players") {
+    // textContent, so a nickname is never read as markup. It is set on every
+    // acquire, so a reused element never shows the previous player's name.
+    element.firstChild.textContent = options.nickname || "";
+  }
+
+  const entity = {
+    element,
+    type,
+    x: options.x || 0,
+    y: options.y || 0,
+    dirty: true,
+  };
   activeEntities.add(entity);
   return entity;
 }
@@ -64,8 +82,19 @@ export function acquireEntity(type, options = {}) {
 export function releaseEntity(entity) {
   if (!entity || !activeEntities.has(entity)) return;
   activeEntities.delete(entity);
-  entity.element.style.visibility = 'hidden';
+  entity.element.style.visibility = "hidden";
   pools[entity.type].push(entity.element);
+}
+
+/**
+ * Tells whether an entity is still on the board. It is not after
+ * initEntityPools has been given a new layer.
+ *
+ * @param {Object} entity
+ * @returns {boolean}
+ */
+export function isEntityActive(entity) {
+  return activeEntities.has(entity);
 }
 
 /**
@@ -89,8 +118,7 @@ export function setEntityPosition(entity, x, y) {
 export function updateEntities() {
   for (const entity of activeEntities) {
     if (!entity.dirty) continue;
-    entity.element.style.transform =
-      `translate3d(calc(${entity.x} * var(--tile)), calc(${entity.y} * var(--tile)), 0)`;
+    entity.element.style.transform = `translate3d(calc(${entity.x} * var(--tile)), calc(${entity.y} * var(--tile)), 0)`;
     entity.dirty = false;
   }
 }
