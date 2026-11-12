@@ -9,7 +9,7 @@ import (
 func newTestMatch() (*Match, *MatchPlayer) {
 	client := &Client{}
 	entrants := []matchEntrant{{client: client, player: Player{ID: 1, Nickname: "Niko"}}}
-	m := NewMatch(newHub(), entrants, 42)
+	m := NewMatch(newHub(), entrants, 42, nil)
 	return m, m.players[0]
 }
 
