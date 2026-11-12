@@ -7,6 +7,7 @@ export const store = createStore({
   players: [],
   countdown: null, // { phase, seconds } while the server counts, otherwise null
   messages: [],
+  chatLength: 0,
   error: null,
   connection: "connecting",
   map: null,
@@ -38,6 +39,10 @@ export function addMessage(message) {
 
 export function setMessages(messages) {
   store.setState({ messages });
+}
+
+export function setChatLength(chatLength) {
+  store.setState({ chatLength });
 }
 
 export function setError(error) {
