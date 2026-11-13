@@ -53,9 +53,12 @@ type MatchPlayer struct {
 	Position Position `json:"position"`
 	Lives    int      `json:"lives"`
 
-	client *Client   // not exported, so never sent as JSON
-	held   inputData // the newest input applied
-	speed  float64   // tiles per second
+	client      *Client   // not exported, so never sent as JSON
+	held        inputData // the newest input applied
+	speed       float64   // tiles per second
+	bombsMax    int       // bombs this player can have on the map at once
+	bombsPlaced int       // bombs this player has on the map now
+	bombRange   int       // cells this player's flames reach in each direction
 }
 
 // playerUpdate is the part of a player that can change during a match.
@@ -79,8 +82,11 @@ type endData struct {
 }
 
 type stateData struct {
-	Tick    int            `json:"tick"`
-	Players []playerUpdate `json:"players,omitempty"`
+	Tick       int             `json:"tick"`
+	Players    []playerUpdate  `json:"players,omitempty"`
+	Bombs      []bombData      `json:"bombs,omitempty"`      // placed since the last state
+	Explosions []explosionData `json:"explosions,omitempty"` // bombs that went off and the cells they hit
+	Destroyed  []cellData      `json:"destroyed,omitempty"`  // blocks destroyed, now empty
 }
 
 // matchEntrant is a lobby player handed over to a new match.
@@ -100,6 +106,15 @@ type Match struct {
 	onEnd    func() // called once when the match is over; may be nil
 	lastSent map[int]playerUpdate
 	tick     int
+
+	bombRequests chan *Client
+	bombs        map[gridCell]*bomb
+	nextBombID   int
+
+	// Events since the last state message; sent and cleared by sendState.
+	newBombs   []bombData
+	explosions []explosionData
+	destroyed  []cellData
 }
 
 // NewMatch creates a match on a new map and places each player in a corner.
@@ -111,19 +126,24 @@ func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Matc
 		leaves:   make(chan *Client, maxPlayers),
 		onEnd:    onEnd,
 		lastSent: make(map[int]playerUpdate),
+
+		bombRequests: make(chan *Client, inputQueueSize),
+		bombs:        make(map[gridCell]*bomb),
 	}
 	m.grid = NewCollisionGrid(&m.gameMap)
 
 	spawns := spawnPositions(m.gameMap)
 	for i, e := range entrants {
 		p := &MatchPlayer{
-			ID:       e.player.ID,
-			Nickname: e.player.Nickname,
-			Colour:   playerColours[i],
-			Position: spawns[i],
-			Lives:    startLives,
-			client:   e.client,
-			speed:    baseSpeed,
+			ID:        e.player.ID,
+			Nickname:  e.player.Nickname,
+			Colour:    playerColours[i],
+			Position:  spawns[i],
+			Lives:     startLives,
+			client:    e.client,
+			speed:     baseSpeed,
+			bombsMax:  startBombs,
+			bombRange: startRange,
 		}
 		m.players = append(m.players, p)
 		m.lastSent[p.ID] = p.update()
@@ -163,6 +183,8 @@ func (m *Match) Run() {
 		select {
 		case in := <-m.inputs:
 			m.applyInput(in)
+		case client := <-m.bombRequests:
+			m.placeBomb(client)
 		case client := <-m.leaves:
 			if m.removePlayer(client) {
 				return
@@ -215,7 +237,7 @@ func (m *Match) checkForWinner() bool {
 		log.Printf("match over: no winner")
 	}
 
-	m.sendToPlayers(TypeState, stateData{Tick: m.tick, Players: m.changedPlayers()})
+	m.sendState()
 	m.sendToPlayers(TypeEnd, endData{Winner: winner})
 	if m.onEnd != nil {
 		m.onEnd()
@@ -232,7 +254,21 @@ func (m *Match) step() {
 			m.move(p, p.speed*seconds)
 		}
 	}
-	m.sendToPlayers(TypeState, stateData{Tick: m.tick, Players: m.changedPlayers()})
+	m.tickBombs()
+	m.sendState()
+}
+
+// sendState sends what changed since the last state: players, new bombs,
+// explosions and destroyed blocks. The events are then cleared.
+func (m *Match) sendState() {
+	m.sendToPlayers(TypeState, stateData{
+		Tick:       m.tick,
+		Players:    m.changedPlayers(),
+		Bombs:      m.newBombs,
+		Explosions: m.explosions,
+		Destroyed:  m.destroyed,
+	})
+	m.newBombs, m.explosions, m.destroyed = nil, nil, nil
 }
 
 // move moves a player up to dist tiles in the held directions. Each axis moves on its own, so a player slides along a wall instead of stopping.
@@ -261,7 +297,7 @@ func (m *Match) moveAxis(p *MatchPlayer, horizontal bool, dir, dist float64) {
 		} else {
 			y += delta
 		}
-		if !m.grid.CanOccupy(x, y, playerSize, playerSize) {
+		if !m.canMoveTo(p, x, y) {
 			break
 		}
 		p.Position = Position{X: x, Y: y}
