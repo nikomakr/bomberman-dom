@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # scripts/check.sh
 # Scans every .js file in web/src/ for forbidden patterns.
-# Uses only bash and grep. Exits 1 if anything is found, 0 otherwise.
-
-shopt -s globstar nullglob
+# Uses only bash, find and grep, and works with the bash 3.2 that macOS ships.
+# Exits 1 if anything is found, 0 otherwise.
 
 # Run from the project root, wherever the script is called from.
 self="${BASH_SOURCE[0]}"
@@ -32,10 +31,8 @@ PATTERNS=(
 found=0
 
 if [[ -d "$SRC_DIR" ]]; then
-  files=("$SRC_DIR"/**/*.js)
-
-  for file in "${files[@]}"; do
-    [[ -f "$file" ]] || continue
+  # find walks every folder under web/src, so no file is skipped, however deep.
+  while IFS= read -r file; do
     for entry in "${PATTERNS[@]}"; do
       label="${entry%%|*}"
       regex="${entry#*|}"
@@ -45,7 +42,7 @@ if [[ -d "$SRC_DIR" ]]; then
         found=1
       done < <(grep -n -E -e "$regex" -- "$file")
     done
-  done
+  done < <(find "$SRC_DIR" -type f -name '*.js' | sort)
 fi
 
 if [[ "$found" -eq 1 ]]; then
