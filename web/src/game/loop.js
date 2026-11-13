@@ -1,5 +1,6 @@
 import { createLoop, createFpsMeter } from "/framework/index.js";
 import { initEntityPools, updateEntities } from "./entities.js";
+import { drawPlayers } from "./players.js";
 
 // Shows the frame rate while developing.
 const SHOW_FPS = true;
@@ -9,6 +10,7 @@ const SHOW_FPS = true;
  * @param {number} delta - Milliseconds since the previous frame.
  */
 function update(delta) {
+  drawPlayers(performance.now());
   updateEntities();
 }
 

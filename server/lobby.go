@@ -18,7 +18,8 @@ import (
 // waiting -> wait when a 2nd player joins; wait -> countdown after 20
 // seconds or when a 4th player joins (waiting -> countdown if 4 arrive at
 // once); wait or countdown -> waiting when fewer than 2 players remain;
-// countdown -> started when it reaches 0.
+// countdown -> started when it reaches 0; started -> waiting when the
+// match ends.
 //
 // All lobby state is changed only inside Run, one event at a time, so no
 // locks are needed.
@@ -89,8 +90,9 @@ type Lobby struct {
 	leaves chan *Client
 	chats  chan chatRequest
 	inputs chan playerInput
+	ended  chan struct{}
 
-	match *Match // the running match, or nil before the game starts
+	match *Match // the running match, or nil when no game is running
 
 	players     map[*Client]Player
 	order       []*Client
@@ -109,6 +111,7 @@ func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 		leaves:  make(chan *Client),
 		chats:   make(chan chatRequest),
 		inputs:  make(chan playerInput),
+		ended:   make(chan struct{}),
 		players: make(map[*Client]Player),
 		phase:   phaseWaiting,
 	}
@@ -129,8 +132,8 @@ func (l *Lobby) Input(client *Client, input inputData) {
 	l.inputs <- playerInput{client: client, input: input}
 }
 
-// Run handles one event at a time: a join, a leave, a chat, an input or a
-// timer step.
+// Run handles one event at a time: a join, a leave, a chat, an input, the
+// end of a match or a timer step.
 func (l *Lobby) Run() {
 	for {
 		select {
@@ -144,6 +147,8 @@ func (l *Lobby) Run() {
 			if l.match != nil {
 				l.match.Input(in.client, in.input)
 			}
+		case <-l.ended:
+			l.reset()
 		case <-l.tickChannel():
 			l.onTick()
 		}
@@ -192,6 +197,9 @@ func (l *Lobby) leave(client *Client) {
 	log.Printf("%q left (%d/%d)", player.Nickname, len(l.players), maxPlayers)
 
 	if l.phase == phaseStarted {
+		if l.match != nil {
+			l.match.Leave(client)
+		}
 		return
 	}
 	l.sendLobby()
@@ -250,9 +258,26 @@ func (l *Lobby) start() {
 		entrants = append(entrants, matchEntrant{client: client, player: l.players[client]})
 	}
 
-	match := NewMatch(l.hub, entrants, time.Now().UnixNano())
+	match := NewMatch(l.hub, entrants, time.Now().UnixNano(), l.matchEnded)
 	l.match = match
 	go match.Run()
+}
+
+// matchEnded is called by the match when it is over. It runs on the match
+// goroutine, so it only sends an event to Run.
+func (l *Lobby) matchEnded() {
+	l.ended <- struct{}{}
+}
+
+// reset empties the lobby after a match, ready for a new game.
+func (l *Lobby) reset() {
+	l.stopTicker()
+	l.match = nil
+	l.players = make(map[*Client]Player)
+	l.order = nil
+	l.phase = phaseWaiting
+	l.secondsLeft = 0
+	log.Printf("lobby reset: ready for a new game")
 }
 
 // tickChannel returns the ticker's channel, or nil when no timer is running.

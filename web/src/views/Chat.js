@@ -1,6 +1,6 @@
 import { h, onKey } from "/framework/index.js";
 import { send } from "../net/socket.js";
-
+import { setChatLength } from "../store.js";
 // "14:05" from a timestamp in milliseconds. Empty if there is none.
 function formatTime(value) {
   if (value === undefined || value === null) return "";
@@ -14,6 +14,10 @@ function sendMessage(event, input) {
   if (text === "") return;
   send("chat", { text });
   input.value = "";
+  setChatLength(0);
+}
+function updateChatLength(event, input) {
+  setChatLength(input.value.length);
 }
 
 function renderMessage(message, index) {
@@ -51,7 +55,12 @@ export function Chat(state) {
       type: "text",
       placeholder: "Type a message and press Enter",
       autocomplete: "off",
-      on: { keydown: onKey({ Enter: sendMessage }) },
+      maxlength: 200,
+      on: {
+        input: updateChatLength,
+        keydown: onKey({ Enter: sendMessage }),
+      },
     }),
+    h("p", { class: "chat-counter" }, `${state.chatLength} / 200`),
   ]);
 }

@@ -6,6 +6,7 @@ import {
   setConnection,
   startGame,
 } from "../store.js";
+import { startMatch, updatePlayers } from "../game/players.js";
 
 const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
@@ -20,10 +21,17 @@ export function send(type, data) {
 // One dispatch table: incoming message type -> store action.
 const dispatch = Object.freeze({
   lobby: (data) => setPlayers(data.players),
-  countdown: (data) => setCountdown(data.seconds),
+  countdown: (data) => setCountdown(data.phase, data.seconds),
   chat: (data) => addMessage(data),
   error: (data) => setError(data.message),
-  start: (data) => startGame(data),
+  start: (data) => {
+    startMatch(data);
+    startGame(data);
+    window.location.hash = "#/game";
+  },
+  // Positions change about 20 times a second, so they are kept outside the
+  // store and do not re-render the page.
+  state: (data) => updatePlayers(data),
 });
 
 socket.onopen = () => {
