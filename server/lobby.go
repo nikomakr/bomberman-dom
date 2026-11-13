@@ -90,6 +90,7 @@ type Lobby struct {
 	leaves chan *Client
 	chats  chan chatRequest
 	inputs chan playerInput
+	bombs  chan *Client
 	ended  chan struct{}
 
 	match *Match // the running match, or nil when no game is running
@@ -111,6 +112,7 @@ func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 		leaves:  make(chan *Client),
 		chats:   make(chan chatRequest),
 		inputs:  make(chan playerInput),
+		bombs:   make(chan *Client),
 		ended:   make(chan struct{}),
 		players: make(map[*Client]Player),
 		phase:   phaseWaiting,
@@ -132,8 +134,13 @@ func (l *Lobby) Input(client *Client, input inputData) {
 	l.inputs <- playerInput{client: client, input: input}
 }
 
-// Run handles one event at a time: a join, a leave, a chat, an input, the
-// end of a match or a timer step.
+// Bomb passes a player's bomb request to the running match, if any.
+func (l *Lobby) Bomb(client *Client) {
+	l.bombs <- client
+}
+
+// Run handles one event at a time: a join, a leave, a chat, an input, a bomb,
+// the end of a match or a timer step.
 func (l *Lobby) Run() {
 	for {
 		select {
@@ -146,6 +153,10 @@ func (l *Lobby) Run() {
 		case in := <-l.inputs:
 			if l.match != nil {
 				l.match.Input(in.client, in.input)
+			}
+		case client := <-l.bombs:
+			if l.match != nil {
+				l.match.Bomb(client)
 			}
 		case <-l.ended:
 			l.reset()

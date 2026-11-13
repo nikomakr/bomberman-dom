@@ -89,6 +89,8 @@ func (c *Client) handle(data []byte) {
 			return
 		}
 		c.lobby.Input(c, input)
+	case TypeBomb:
+		c.lobby.Bomb(c)
 	default:
 		log.Printf("received %q", msg.Type)
 	}
