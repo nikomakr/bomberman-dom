@@ -66,10 +66,7 @@ func (m *Match) placeBomb(client *Client) {
 	if p == nil || p.Lives == 0 || p.bombsPlaced >= p.bombsMax {
 		return
 	}
-	cell := gridCell{
-		col: int(math.Floor(p.Position.X + playerSize/2)),
-		row: int(math.Floor(p.Position.Y + playerSize/2)),
-	}
+	cell := centreCell(p.Position)
 	if !m.grid.PlaceBomb(cell.col, cell.row) {
 		return // a wall, a block or another bomb is already there
 	}
@@ -125,6 +122,7 @@ func (m *Match) explode(first *bomb) {
 				if tile == TileBlock {
 					m.grid.DestroyBlock(c.col, c.row)
 					m.destroyed = append(m.destroyed, cellData{Col: c.col, Row: c.row})
+					b.owner.Score += pointsBlock
 					break
 				}
 				if other, ok := m.bombs[c]; ok {
@@ -134,6 +132,7 @@ func (m *Match) explode(first *bomb) {
 			}
 		}
 		m.explosions = append(m.explosions, explosionData{Bomb: b.id, Cells: cells})
+		m.lightFlames(b.owner, cells)
 		log.Printf("bomb %d exploded: %d cells", b.id, len(cells))
 	}
 }
