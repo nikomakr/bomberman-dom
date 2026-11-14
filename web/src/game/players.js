@@ -5,6 +5,15 @@
 // positions it received. Each frame it draws the player somewhere between
 // them (interpolation), so the movement looks smooth at 60 FPS.
 
+import { store } from "../store.js";
+
+import {
+  startPrediction,
+  reconcile,
+  getPredictedPosition,
+  stopPrediction,
+} from "./prediction.js";
+
 import {
   acquireEntity,
   releaseEntity,
@@ -42,6 +51,7 @@ export function clearPlayers() {
   for (const player of players.values()) {
     releaseEntity(player.entity);
   }
+  stopPrediction();
   players.clear();
 }
 
@@ -54,6 +64,15 @@ export function startMatch(data) {
   clearPlayers();
   spriteOffset = (1 - data.playerSize) / 2;
   const now = performance.now();
+
+  const nickname = store.getState().nickname;
+  const localPlayer = data.players.find(
+    (player) => player.nickname === nickname,
+  );
+
+  if (localPlayer) {
+    startPrediction(data.map, localPlayer.position);
+  }
 
   data.players.forEach((player, index) => {
     players.set(player.id, {
@@ -79,6 +98,9 @@ export function updatePlayers(data) {
   for (const update of data.players) {
     const player = players.get(update.id);
     if (!player) continue;
+    if (player.nickname === store.getState().nickname) {
+      reconcile(update.position, update.lastInput);
+    }
     if (update.lives === 0) {
       removePlayer(update.id);
       continue;
@@ -108,7 +130,14 @@ export function removePlayer(id) {
  */
 export function drawPlayers(now) {
   for (const player of players.values()) {
-    const { x, y } = positionAt(player, now);
+      
+    let { x, y } = positionAt(player, now);
+
+    if (player.nickname === store.getState().nickname) {
+      const predicted = getPredictedPosition();
+      x = predicted.x - spriteOffset;
+      y = predicted.y - spriteOffset;
+    }
 
     // Takes an element from the pool the first time, and again if the board
     // was rebuilt and the old element is gone.

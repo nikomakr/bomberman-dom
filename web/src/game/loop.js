@@ -2,6 +2,7 @@ import { createLoop, createFpsMeter } from "/framework/index.js";
 import { initEntityPools, updateEntities } from "./entities.js";
 import { drawPlayers } from "./players.js";
 import { startInput, readInput, stopInput } from "./input.js";
+import { updatePrediction } from "./prediction.js";
 
 // Shows the frame rate while developing.
 const SHOW_FPS = true;
@@ -12,9 +13,11 @@ const SHOW_FPS = true;
  */
 function update(delta) {
   readInput();
+  updatePrediction(delta);
   drawPlayers(performance.now());
   updateEntities();
 }
+
 
 const loop = createLoop(update);
 let fpsMeter = null;

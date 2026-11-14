@@ -1,3 +1,4 @@
+import { recordInput } from "./prediction.js";
 import { createKeyState, onGlobal } from "/framework/index.js";
 import { send } from "../net/socket.js";
 
@@ -11,7 +12,13 @@ const LEFT = 4;
 const RIGHT = 8;
 
 // Keys the page must not use for scrolling while the game is on screen.
-const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "]);
+const GAME_KEYS = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  " ",
+]);
 
 let keys = null; // the held-key tracker, or null when the board is not shown
 let stopKeydown = null; // removes the Space and scrolling handler
@@ -56,16 +63,18 @@ export function readInput() {
   if (held === lastHeld) return;
   lastHeld = held;
   seq += 1;
-
-  send("input", {
-    up: (held & UP) !== 0,
-    down: (held & DOWN) !== 0,
-    left: (held & LEFT) !== 0,
-    right: (held & RIGHT) !== 0,
-    seq,
-  });
 }
 
+const input = {
+  up: (held & UP) !== 0,
+  down: (held & DOWN) !== 0,
+  left: (held & LEFT) !== 0,
+  right: (held & RIGHT) !== 0,
+  seq,
+};
+
+recordInput(input);
+send("input", input);
 /**
  * Stops tracking keys. Called when the board is removed.
  */
