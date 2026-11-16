@@ -12,7 +12,7 @@
 // the player sees. Small differences are smoothed; large ones snap.
 
 // Copied from the server; if these differ, the player rubber-bands.
-const SPEED = 4; // tiles per second
+const START_SPEED = 4; // tiles per second, until a Speed power-up
 const MOVE_STEP = 0.05; // largest distance checked for collisions at once
 const CORNER_TOLERANCE = 0.4; // how far off a corridor a player still slides in
 const EPSILON = 1e-9;
@@ -24,6 +24,7 @@ const HISTORY_SECONDS = 1; // how far back key presses are remembered
 
 let active = false;
 let size = 0.8; // player box width and height, from `start`
+let speed = START_SPEED; // tiles per second, from `state` (Speed power-ups)
 let columns = 0;
 let rows = 0;
 let tiles = null; // this module's own copy of the map tiles
@@ -146,7 +147,7 @@ function simulate(directions, seconds) {
   const dy = Number(directions.down) - Number(directions.up);
   if (dx === 0 && dy === 0) return;
 
-  let distance = SPEED * seconds;
+  let distance = speed * seconds;
   if (dx !== 0 && dy !== 0) distance *= Math.SQRT1_2;
 
   if (dx !== 0) moveAxis(true, dx, distance);
@@ -161,6 +162,7 @@ function simulate(directions, seconds) {
  */
 export function startPrediction(data, startPosition) {
   size = data.playerSize;
+  speed = START_SPEED;
   columns = data.map.columns;
   rows = data.map.rows;
   tiles = data.map.tiles.slice(); // a copy: the store keeps its own map
@@ -220,6 +222,15 @@ export function applyMapChanges(data) {
   for (const cell of data.destroyed || []) {
     tiles[cell.row * columns + cell.col] = "empty";
   }
+}
+
+/**
+ * Uses the speed the server reports, so a Speed power-up is predicted too.
+ *
+ * @param {number} tilesPerSecond
+ */
+export function setSpeed(tilesPerSecond) {
+  if (tilesPerSecond > 0) speed = tilesPerSecond;
 }
 
 /**
