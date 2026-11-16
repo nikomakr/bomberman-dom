@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"math"
+	"math/rand/v2"
 	"time"
 )
 
@@ -70,6 +71,9 @@ type playerUpdate struct {
 	Position  Position `json:"position"`
 	Lives     int      `json:"lives"`
 	Score     int      `json:"score"`
+	Bombs     int      `json:"bombs"` // bombs the player can have on the map at once
+	Range     int      `json:"range"` // cells the player's flames reach
+	Speed     float64  `json:"speed"` // tiles per second
 	LastInput int      `json:"lastInput"`
 }
 
@@ -91,6 +95,9 @@ type stateData struct {
 	Bombs      []bombData      `json:"bombs,omitempty"`      // placed since the last state
 	Explosions []explosionData `json:"explosions,omitempty"` // bombs that went off and the cells they hit
 	Destroyed  []cellData      `json:"destroyed,omitempty"`  // blocks destroyed, now empty
+	PowerUps   []powerUpData   `json:"powerUps,omitempty"`   // power-ups that appeared
+	Collected  []collectedData `json:"collected,omitempty"`  // power-ups picked up, and by whom
+	Burnt      []int           `json:"burnt,omitempty"`      // ids of power-ups a flame destroyed
 }
 
 // matchEntrant is a lobby player handed over to a new match.
@@ -111,15 +118,21 @@ type Match struct {
 	lastSent map[int]playerUpdate
 	tick     int
 
-	bombRequests chan *Client
-	bombs        map[gridCell]*bomb
-	nextBombID   int
-	flames       map[gridCell]*flame
+	bombRequests  chan *Client
+	bombs         map[gridCell]*bomb
+	nextBombID    int
+	flames        map[gridCell]*flame
+	powerUps      map[gridCell]*powerUp
+	nextPowerUpID int
+	rng           *rand.Rand // the match's own random numbers, from its seed
 
 	// Events since the last state message; sent and cleared by sendState.
-	newBombs   []bombData
-	explosions []explosionData
-	destroyed  []cellData
+	newBombs      []bombData
+	explosions    []explosionData
+	destroyed     []cellData
+	newPowerUps   []powerUpData
+	collected     []collectedData
+	burntPowerUps []int
 }
 
 // NewMatch creates a match on a new map and places each player in a corner.
@@ -135,6 +148,8 @@ func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Matc
 		bombRequests: make(chan *Client, inputQueueSize),
 		bombs:        make(map[gridCell]*bomb),
 		flames:       make(map[gridCell]*flame),
+		powerUps:     make(map[gridCell]*powerUp),
+		rng:          newMatchRand(seed),
 	}
 	m.grid = NewCollisionGrid(&m.gameMap)
 
@@ -263,6 +278,7 @@ func (m *Match) step() bool {
 			m.move(p, p.speed*seconds)
 		}
 	}
+	m.collectPowerUps()
 	m.coolFlames()
 	m.tickBombs()
 	if m.burnPlayers() && m.checkForWinner() {
@@ -281,8 +297,12 @@ func (m *Match) sendState() {
 		Bombs:      m.newBombs,
 		Explosions: m.explosions,
 		Destroyed:  m.destroyed,
+		PowerUps:   m.newPowerUps,
+		Collected:  m.collected,
+		Burnt:      m.burntPowerUps,
 	})
 	m.newBombs, m.explosions, m.destroyed = nil, nil, nil
+	m.newPowerUps, m.collected, m.burntPowerUps = nil, nil, nil
 }
 
 // move moves a player up to dist tiles in the held directions. Each axis moves on its own, so a player slides along a wall instead of stopping.
@@ -376,6 +396,9 @@ func (p *MatchPlayer) update() playerUpdate {
 		Position:  Position{X: round3(p.Position.X), Y: round3(p.Position.Y)},
 		Lives:     p.Lives,
 		Score:     p.Score,
+		Bombs:     p.bombsMax,
+		Range:     p.bombRange,
+		Speed:     p.speed,
 		LastInput: p.held.Seq,
 	}
 }

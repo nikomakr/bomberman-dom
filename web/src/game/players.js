@@ -11,6 +11,7 @@ import {
   startPrediction,
   applyMapChanges,
   reconcile,
+  setSpeed,
   getPredictedPosition,
   stopPrediction,
 } from "./prediction.js";
@@ -104,8 +105,12 @@ export function updatePlayers(data) {
     const player = players.get(update.id);
     if (!player) continue;
     if (update.id === localId) {
-      if (update.lives === 0) stopPrediction();
-      else reconcile(update.position, update.lastInput);
+      if (update.lives === 0) { 
+        stopPrediction();
+      } else {
+        setSpeed(update.speed);
+        reconcile(update.position, update.lastInput);
+      }
     }
     if (update.lives === 0) {
       removePlayer(update.id);

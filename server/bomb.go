@@ -100,6 +100,7 @@ func (m *Match) tickBombs() {
 // stop at another bomb after setting it off.
 func (m *Match) explode(first *bomb) {
 	queue := []*bomb{first}
+	var broken []gridCell // blocks destroyed by this explosion and its chain
 	for len(queue) > 0 {
 		b := queue[0]
 		queue = queue[1:]
@@ -123,8 +124,10 @@ func (m *Match) explode(first *bomb) {
 					m.grid.DestroyBlock(c.col, c.row)
 					m.destroyed = append(m.destroyed, cellData{Col: c.col, Row: c.row})
 					b.owner.Score += pointsBlock
+					broken = append(broken, c)
 					break
 				}
+				m.burnPowerUp(c)
 				if other, ok := m.bombs[c]; ok {
 					queue = append(queue, other)
 					break
@@ -135,6 +138,8 @@ func (m *Match) explode(first *bomb) {
 		m.lightFlames(b.owner, cells)
 		log.Printf("bomb %d exploded: %d cells", b.id, len(cells))
 	}
+	// Drops come last, so this explosion's own flames do not burn them.
+	m.dropPowerUps(broken)
 }
 
 // canMoveTo reports whether a player's box fits at (x, y). A player who is
