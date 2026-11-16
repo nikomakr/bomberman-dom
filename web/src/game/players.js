@@ -5,6 +5,16 @@
 // positions it received. Each frame it draws the player somewhere between
 // them (interpolation), so the movement looks smooth at 60 FPS.
 
+import { store } from "../store.js";
+
+import {
+  startPrediction,
+  applyMapChanges,
+  reconcile,
+  getPredictedPosition,
+  stopPrediction,
+} from "./prediction.js";
+
 import {
   acquireEntity,
   releaseEntity,
@@ -16,6 +26,7 @@ import {
 const TICK_MS = 50;
 
 const players = new Map(); // player id -> { nickname, number, entity, from, to, arrivedAt }
+let localId = null; // id of the player on this screen, drawn from prediction
 let spriteOffset = 0; // centres a one-tile sprite on the player's smaller box
 
 function lerp(a, b, t) {
@@ -42,7 +53,9 @@ export function clearPlayers() {
   for (const player of players.values()) {
     releaseEntity(player.entity);
   }
+  stopPrediction();
   players.clear();
+  localId = null;
 }
 
 /**
@@ -54,6 +67,15 @@ export function startMatch(data) {
   clearPlayers();
   spriteOffset = (1 - data.playerSize) / 2;
   const now = performance.now();
+
+  const nickname = store.getState().nickname;
+  const localPlayer = data.players.find(
+    (player) => player.nickname === nickname,
+  );
+  if (localPlayer) {
+    localId = localPlayer.id;
+    startPrediction(data, localPlayer.position);
+  }
 
   data.players.forEach((player, index) => {
     players.set(player.id, {
@@ -73,12 +95,18 @@ export function startMatch(data) {
  * @param {{ players?: Array<{ id: number, position: { x: number, y: number } }> }} data - The `state` message data.
  */
 export function updatePlayers(data) {
-  if (!data || !Array.isArray(data.players)) return;
+  if (!data) return;
+  applyMapChanges(data);
+  if (!Array.isArray(data.players)) return;
   const now = performance.now();
 
   for (const update of data.players) {
     const player = players.get(update.id);
     if (!player) continue;
+    if (update.id === localId) {
+      if (update.lives === 0) stopPrediction();
+      else reconcile(update.position, update.lastInput);
+    }
     if (update.lives === 0) {
       removePlayer(update.id);
       continue;
@@ -107,8 +135,14 @@ export function removePlayer(id) {
  * @param {number} now - performance.now() of this frame.
  */
 export function drawPlayers(now) {
-  for (const player of players.values()) {
-    const { x, y } = positionAt(player, now);
+  for (const [id, player] of players) {
+    let { x, y } = positionAt(player, now);
+
+    if (id === localId) {
+      const predicted = getPredictedPosition();
+      x = predicted.x - spriteOffset;
+      y = predicted.y - spriteOffset;
+    }
 
     // Takes an element from the pool the first time, and again if the board
     // was rebuilt and the old element is gone.

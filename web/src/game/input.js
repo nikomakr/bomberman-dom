@@ -1,5 +1,6 @@
 import { createKeyState, onGlobal } from "/framework/index.js";
 import { send } from "../net/socket.js";
+import { recordInput } from "./prediction.js";
 
 // Reads the held arrow keys once per frame and tells the server only when
 // they change. Holding a key sends one `input`; letting go sends another.
@@ -11,7 +12,13 @@ const LEFT = 4;
 const RIGHT = 8;
 
 // Keys the page must not use for scrolling while the game is on screen.
-const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "]);
+const GAME_KEYS = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  " ",
+]);
 
 let keys = null; // the held-key tracker, or null when the board is not shown
 let stopKeydown = null; // removes the Space and scrolling handler
@@ -57,13 +64,15 @@ export function readInput() {
   lastHeld = held;
   seq += 1;
 
-  send("input", {
+  const input = {
     up: (held & UP) !== 0,
     down: (held & DOWN) !== 0,
     left: (held & LEFT) !== 0,
     right: (held & RIGHT) !== 0,
     seq,
-  });
+  };
+  send("input", input);
+  recordInput(input);
 }
 
 /**
