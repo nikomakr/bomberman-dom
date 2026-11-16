@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"math"
+	"math/rand/v2"
 	"time"
 )
 
@@ -19,7 +20,7 @@ const (
 	baseSpeed       = 4.0  // tiles per second
 	cornerTolerance = 0.4  // how far off a corridor a player can be and still slide in
 	moveStep        = 0.05 // largest distance checked for collisions at once, in tiles
-	inputQueueSize  = 64 // how many unprocessed inputs can be queued per match
+	inputQueueSize  = 64   // how many unprocessed inputs can be queued per match
 )
 
 // playerColours gives each player a colour in join order.
@@ -52,10 +53,15 @@ type MatchPlayer struct {
 	Colour   string   `json:"colour"`
 	Position Position `json:"position"`
 	Lives    int      `json:"lives"`
+	Score    int      `json:"score"`
 
-	client *Client   // not exported, so never sent as JSON
-	held   inputData // the newest input applied
-	speed  float64   // tiles per second
+	client      *Client   // not exported, so never sent as JSON
+	held        inputData // the newest input applied
+	speed       float64   // tiles per second
+	bombsMax    int       // bombs this player can have on the map at once
+	bombsPlaced int       // bombs this player has on the map now
+	bombRange   int       // cells this player's flames reach in each direction
+	safeUntil   int       // tick until which flames cannot hurt this player
 }
 
 // playerUpdate is the part of a player that can change during a match.
@@ -64,6 +70,10 @@ type playerUpdate struct {
 	ID        int      `json:"id"`
 	Position  Position `json:"position"`
 	Lives     int      `json:"lives"`
+	Score     int      `json:"score"`
+	Bombs     int      `json:"bombs"` // bombs the player can have on the map at once
+	Range     int      `json:"range"` // cells the player's flames reach
+	Speed     float64  `json:"speed"` // tiles per second
 	LastInput int      `json:"lastInput"`
 }
 
@@ -73,9 +83,21 @@ type matchStartData struct {
 	PlayerSize float64        `json:"playerSize"`
 }
 
+// endData names the last player standing, or null when nobody is left.
+type endData struct {
+	Winner *Player     `json:"winner"`
+	Scores []scoreData `json:"scores"`
+}
+
 type stateData struct {
-	Tick    int            `json:"tick"`
-	Players []playerUpdate `json:"players,omitempty"`
+	Tick       int             `json:"tick"`
+	Players    []playerUpdate  `json:"players,omitempty"`
+	Bombs      []bombData      `json:"bombs,omitempty"`      // placed since the last state
+	Explosions []explosionData `json:"explosions,omitempty"` // bombs that went off and the cells they hit
+	Destroyed  []cellData      `json:"destroyed,omitempty"`  // blocks destroyed, now empty
+	PowerUps   []powerUpData   `json:"powerUps,omitempty"`   // power-ups that appeared
+	Collected  []collectedData `json:"collected,omitempty"`  // power-ups picked up, and by whom
+	Burnt      []int           `json:"burnt,omitempty"`      // ids of power-ups a flame destroyed
 }
 
 // matchEntrant is a lobby player handed over to a new match.
@@ -91,30 +113,58 @@ type Match struct {
 	grid     *CollisionGrid
 	players  []*MatchPlayer
 	inputs   chan playerInput
+	leaves   chan *Client
+	onEnd    func() // called once when the match is over; may be nil
 	lastSent map[int]playerUpdate
 	tick     int
+
+	bombRequests  chan *Client
+	bombs         map[gridCell]*bomb
+	nextBombID    int
+	flames        map[gridCell]*flame
+	powerUps      map[gridCell]*powerUp
+	nextPowerUpID int
+	rng           *rand.Rand // the match's own random numbers, from its seed
+
+	// Events since the last state message; sent and cleared by sendState.
+	newBombs      []bombData
+	explosions    []explosionData
+	destroyed     []cellData
+	newPowerUps   []powerUpData
+	collected     []collectedData
+	burntPowerUps []int
 }
 
 // NewMatch creates a match on a new map and places each player in a corner.
-func NewMatch(hub *Hub, entrants []matchEntrant, seed int64) *Match {
+func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Match {
 	m := &Match{
 		hub:      hub,
 		gameMap:  GenerateMap(seed),
 		inputs:   make(chan playerInput, inputQueueSize),
+		leaves:   make(chan *Client, maxPlayers),
+		onEnd:    onEnd,
 		lastSent: make(map[int]playerUpdate),
+
+		bombRequests: make(chan *Client, inputQueueSize),
+		bombs:        make(map[gridCell]*bomb),
+		flames:       make(map[gridCell]*flame),
+		powerUps:     make(map[gridCell]*powerUp),
+		rng:          newMatchRand(seed),
 	}
 	m.grid = NewCollisionGrid(&m.gameMap)
 
 	spawns := spawnPositions(m.gameMap)
 	for i, e := range entrants {
 		p := &MatchPlayer{
-			ID:       e.player.ID,
-			Nickname: e.player.Nickname,
-			Colour:   playerColours[i],
-			Position: spawns[i],
-			Lives:    startLives,
-			client:   e.client,
-			speed:    baseSpeed,
+			ID:        e.player.ID,
+			Nickname:  e.player.Nickname,
+			Colour:    playerColours[i],
+			Position:  spawns[i],
+			Lives:     startLives,
+			client:    e.client,
+			speed:     baseSpeed,
+			bombsMax:  startBombs,
+			bombRange: startRange,
 		}
 		m.players = append(m.players, p)
 		m.lastSent[p.ID] = p.update()
@@ -132,7 +182,17 @@ func (m *Match) Input(client *Client, input inputData) {
 	}
 }
 
-// Run sends the start message, then handles inputs and ticks one at a time.
+// Leave tells the match that a player has disconnected. It never blocks.
+func (m *Match) Leave(client *Client) {
+	select {
+	case m.leaves <- client:
+	default:
+		log.Printf("leave queue full, leave dropped")
+	}
+}
+
+// Run sends the start message, then handles inputs, leaves and ticks one at
+// a time. It returns when the match is over, so its goroutine stops.
 func (m *Match) Run() {
 	log.Printf("match started: %d players, %dx%d map", len(m.players), m.gameMap.Columns, m.gameMap.Rows)
 	m.sendToPlayers(TypeStart, matchStartData{Map: m.gameMap, Players: m.players, PlayerSize: playerSize})
@@ -144,13 +204,21 @@ func (m *Match) Run() {
 		select {
 		case in := <-m.inputs:
 			m.applyInput(in)
+		case client := <-m.bombRequests:
+			m.placeBomb(client)
+		case client := <-m.leaves:
+			if m.removePlayer(client) {
+				return
+			}
 		case <-ticker.C:
-			m.step()
+			if m.step() {
+				return
+			}
 		}
 	}
 }
 
-// applyInput keeps only the newest input per player. Inputs from unknown clients, from players who are out, or older than one already applied are ignored 
+// applyInput keeps only the newest input per player. Inputs from unknown clients, from players who are out, or older than one already applied are ignored
 func (m *Match) applyInput(in playerInput) {
 	p := m.playerFor(in.client)
 	if p == nil || p.Lives <= 0 || in.input.Seq <= p.held.Seq {
@@ -159,8 +227,50 @@ func (m *Match) applyInput(in playerInput) {
 	p.held = in.input
 }
 
-// step moves every player still in the game, then sends what changed.
-func (m *Match) step() {
+// removePlayer puts a player who left out of the game. It reports whether
+// the match is now over.
+func (m *Match) removePlayer(client *Client) bool {
+	p := m.playerFor(client)
+	if p == nil || p.Lives == 0 {
+		return false
+	}
+	p.Lives = 0
+	log.Printf("%q left the match", p.Nickname)
+	return m.checkForWinner()
+}
+
+// checkForWinner ends the match when one player or none is left. It sends
+// the final state and the end message, then tells the lobby.
+func (m *Match) checkForWinner() bool {
+	var alive []*MatchPlayer
+	for _, p := range m.players {
+		if p.Lives > 0 {
+			alive = append(alive, p)
+		}
+	}
+	if len(alive) > 1 {
+		return false
+	}
+
+	var winner *Player
+	if len(alive) == 1 {
+		winner = &Player{ID: alive[0].ID, Nickname: alive[0].Nickname}
+		log.Printf("match over: %q wins", winner.Nickname)
+	} else {
+		log.Printf("match over: no winner")
+	}
+
+	m.sendState()
+	m.sendToPlayers(TypeEnd, endData{Winner: winner, Scores: m.finalScores()})
+	if m.onEnd != nil {
+		m.onEnd()
+	}
+	return true
+}
+
+// step moves every player still in the game, runs the bombs and flames,
+// then sends what changed. It reports whether the match is over.
+func (m *Match) step() bool {
 	m.tick++
 	seconds := tickInterval.Seconds()
 	for _, p := range m.players {
@@ -168,7 +278,31 @@ func (m *Match) step() {
 			m.move(p, p.speed*seconds)
 		}
 	}
-	m.sendToPlayers(TypeState, stateData{Tick: m.tick, Players: m.changedPlayers()})
+	m.collectPowerUps()
+	m.coolFlames()
+	m.tickBombs()
+	if m.burnPlayers() && m.checkForWinner() {
+		return true
+	}
+	m.sendState()
+	return false
+}
+
+// sendState sends what changed since the last state: players, new bombs,
+// explosions and destroyed blocks. The events are then cleared.
+func (m *Match) sendState() {
+	m.sendToPlayers(TypeState, stateData{
+		Tick:       m.tick,
+		Players:    m.changedPlayers(),
+		Bombs:      m.newBombs,
+		Explosions: m.explosions,
+		Destroyed:  m.destroyed,
+		PowerUps:   m.newPowerUps,
+		Collected:  m.collected,
+		Burnt:      m.burntPowerUps,
+	})
+	m.newBombs, m.explosions, m.destroyed = nil, nil, nil
+	m.newPowerUps, m.collected, m.burntPowerUps = nil, nil, nil
 }
 
 // move moves a player up to dist tiles in the held directions. Each axis moves on its own, so a player slides along a wall instead of stopping.
@@ -197,7 +331,7 @@ func (m *Match) moveAxis(p *MatchPlayer, horizontal bool, dir, dist float64) {
 		} else {
 			y += delta
 		}
-		if !m.grid.CanOccupy(x, y, playerSize, playerSize) {
+		if !m.canMoveTo(p, x, y) {
 			break
 		}
 		p.Position = Position{X: x, Y: y}
@@ -261,6 +395,10 @@ func (p *MatchPlayer) update() playerUpdate {
 		ID:        p.ID,
 		Position:  Position{X: round3(p.Position.X), Y: round3(p.Position.Y)},
 		Lives:     p.Lives,
+		Score:     p.Score,
+		Bombs:     p.bombsMax,
+		Range:     p.bombRange,
+		Speed:     p.speed,
 		LastInput: p.held.Seq,
 	}
 }

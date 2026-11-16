@@ -47,9 +47,7 @@ func (c *Client) readPump() {
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				log.Printf("read error: %v", err)
-			}
+			log.Printf("read error: %v", err)
 			return
 		}
 		c.handle(data)
@@ -91,6 +89,8 @@ func (c *Client) handle(data []byte) {
 			return
 		}
 		c.lobby.Input(c, input)
+	case TypeBomb:
+		c.lobby.Bomb(c)
 	default:
 		log.Printf("received %q", msg.Type)
 	}

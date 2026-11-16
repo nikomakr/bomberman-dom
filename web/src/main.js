@@ -54,7 +54,11 @@ createApp({
   root: document.getElementById("chat"),
   store,
   view: (state) => (state.page === "nickname" ? [] : Chat(state)),
-  select: (state) => ({ page: state.page, messages: state.messages }),
+  select: (state) => ({
+    page: state.page,
+    messages: state.messages,
+    chatLength: state.chatLength,
+  }),
 });
 
 createApp({
