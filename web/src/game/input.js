@@ -1,6 +1,6 @@
-import { recordInput } from "./prediction.js";
 import { createKeyState, onGlobal } from "/framework/index.js";
 import { send } from "../net/socket.js";
+import { recordInput } from "./prediction.js";
 
 // Reads the held arrow keys once per frame and tells the server only when
 // they change. Holding a key sends one `input`; letting go sends another.
@@ -63,18 +63,18 @@ export function readInput() {
   if (held === lastHeld) return;
   lastHeld = held;
   seq += 1;
+
+  const input = {
+    up: (held & UP) !== 0,
+    down: (held & DOWN) !== 0,
+    left: (held & LEFT) !== 0,
+    right: (held & RIGHT) !== 0,
+    seq,
+  };
+  send("input", input);
+  recordInput(input);
 }
 
-const input = {
-  up: (held & UP) !== 0,
-  down: (held & DOWN) !== 0,
-  left: (held & LEFT) !== 0,
-  right: (held & RIGHT) !== 0,
-  seq,
-};
-
-recordInput(input);
-send("input", input);
 /**
  * Stops tracking keys. Called when the board is removed.
  */

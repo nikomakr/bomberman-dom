@@ -18,7 +18,6 @@ function update(delta) {
   updateEntities();
 }
 
-
 const loop = createLoop(update);
 let fpsMeter = null;
 

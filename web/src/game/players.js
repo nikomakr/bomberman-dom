@@ -9,6 +9,7 @@ import { store } from "../store.js";
 
 import {
   startPrediction,
+  applyMapChanges,
   reconcile,
   getPredictedPosition,
   stopPrediction,
@@ -25,6 +26,7 @@ import {
 const TICK_MS = 50;
 
 const players = new Map(); // player id -> { nickname, number, entity, from, to, arrivedAt }
+let localId = null; // id of the player on this screen, drawn from prediction
 let spriteOffset = 0; // centres a one-tile sprite on the player's smaller box
 
 function lerp(a, b, t) {
@@ -53,6 +55,7 @@ export function clearPlayers() {
   }
   stopPrediction();
   players.clear();
+  localId = null;
 }
 
 /**
@@ -69,9 +72,9 @@ export function startMatch(data) {
   const localPlayer = data.players.find(
     (player) => player.nickname === nickname,
   );
-
   if (localPlayer) {
-    startPrediction(data.map, localPlayer.position);
+    localId = localPlayer.id;
+    startPrediction(data, localPlayer.position);
   }
 
   data.players.forEach((player, index) => {
@@ -92,14 +95,17 @@ export function startMatch(data) {
  * @param {{ players?: Array<{ id: number, position: { x: number, y: number } }> }} data - The `state` message data.
  */
 export function updatePlayers(data) {
-  if (!data || !Array.isArray(data.players)) return;
+  if (!data) return;
+  applyMapChanges(data);
+  if (!Array.isArray(data.players)) return;
   const now = performance.now();
 
   for (const update of data.players) {
     const player = players.get(update.id);
     if (!player) continue;
-    if (player.nickname === store.getState().nickname) {
-      reconcile(update.position, update.lastInput);
+    if (update.id === localId) {
+      if (update.lives === 0) stopPrediction();
+      else reconcile(update.position, update.lastInput);
     }
     if (update.lives === 0) {
       removePlayer(update.id);
@@ -129,11 +135,10 @@ export function removePlayer(id) {
  * @param {number} now - performance.now() of this frame.
  */
 export function drawPlayers(now) {
-  for (const player of players.values()) {
-      
+  for (const [id, player] of players) {
     let { x, y } = positionAt(player, now);
 
-    if (player.nickname === store.getState().nickname) {
+    if (id === localId) {
       const predicted = getPredictedPosition();
       x = predicted.x - spriteOffset;
       y = predicted.y - spriteOffset;
