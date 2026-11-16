@@ -306,6 +306,21 @@ body {
 .entity[class*="tile-player-"] {
   will-change: transform;
 }
+.entity[class*="tile-power-"] {
+  animation: power-up-pulse 1.2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes power-up-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+}
 
 /* Nickname shown above each player. It is a child of the player, so it
    moves with the player's transform and needs no work of its own. */
