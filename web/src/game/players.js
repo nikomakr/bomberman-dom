@@ -23,6 +23,8 @@ import {
   isEntityActive,
 } from "./entities.js";
 
+import { updatePowerUps, clearPowerUps } from "./powerUps.js";
+
 // Time between two server updates, in milliseconds (the server sends 20 a second).
 const TICK_MS = 50;
 
@@ -54,6 +56,7 @@ export function clearPlayers() {
   for (const player of players.values()) {
     releaseEntity(player.entity);
   }
+  clearPowerUps();
   stopPrediction();
   players.clear();
   localId = null;
@@ -98,6 +101,7 @@ export function startMatch(data) {
 export function updatePlayers(data) {
   if (!data) return;
   applyMapChanges(data);
+  updatePowerUps(data);
   if (!Array.isArray(data.players)) return;
   const now = performance.now();
 
