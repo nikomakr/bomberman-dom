@@ -62,3 +62,30 @@ export function startGame(data) {
     error: null,
   });
 }
+
+// Updates one board tile without replacing the entire map.
+export function updateTile(col, row, type) {
+  store.setState((state) => {
+    if (!state.map) return;
+
+    const { columns, rows, tiles } = state.map;
+
+    if (col < 0 || row < 0 || col >= columns || row >= rows) {
+      return;
+    }
+
+    const index = row * columns + col;
+
+    if (tiles[index] === type) return;
+
+    const nextTiles = tiles.slice();
+    nextTiles[index] = type;
+
+    return {
+      map: {
+        ...state.map,
+        tiles: nextTiles,
+      },
+    };
+  });
+}
