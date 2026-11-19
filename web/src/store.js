@@ -11,6 +11,8 @@ export const store = createStore({
   error: null,
   connection: "connecting",
   map: null,
+  out: false, // true once this player has lost all their lives
+  result: null, // { winner, scores } after the match ends, otherwise null
 });
 
 // Actions: every change to the state goes through setState.
@@ -60,6 +62,34 @@ export function startGame(data) {
     map: data.map,
     countdown: null,
     error: null,
+    out: false,
+    result: null,
+  });
+}
+
+export function setOut() {
+  store.setState({ out: true });
+}
+
+export function endGame(data) {
+  store.setState({
+    page: "over",
+    result: { winner: data.winner, scores: data.scores || [] },
+    out: false,
+  });
+}
+
+// Forgets the finished match and the nickname, so the player can join again.
+export function backToStart() {
+  store.setState({
+    page: "nickname",
+    nickname: "",
+    players: [],
+    countdown: null,
+    error: null,
+    map: null,
+    out: false,
+    result: null,
   });
 }
 
