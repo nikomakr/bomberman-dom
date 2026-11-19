@@ -1,6 +1,6 @@
 import { acquireEntity, releaseEntity } from "./entities.js";
 
-import { updateTile } from "../store.js";
+import { destroyBlocks } from "../store.js";
 
 const FLAME_DURATION = 500;
 
@@ -45,9 +45,9 @@ export function applyEntityChanges(data) {
     }
   }
 
-  // Update only the blocks destroyed by the explosions.
-  for (const cell of data.destroyed || []) {
-    updateTile(cell.col, cell.row, "empty");
+  // Turn every destroyed block into floor in one store update.
+  if (data.destroyed && data.destroyed.length > 0) {
+    destroyBlocks(data.destroyed);
   }
 }
 

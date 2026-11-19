@@ -63,29 +63,26 @@ export function startGame(data) {
   });
 }
 
-// Updates one board tile without replacing the entire map.
-export function updateTile(col, row, type) {
+// Turns destroyed blocks into floor in one update, so the board redraws once
+// per message however many blocks a chain explosion breaks.
+export function destroyBlocks(cells) {
   store.setState((state) => {
-    if (!state.map) return;
+    if (!state.map || cells.length === 0) return;
 
-    const { columns, rows, tiles } = state.map;
+    const { columns, rows } = state.map;
+    const tiles = state.map.tiles.slice();
+    let changed = false;
 
-    if (col < 0 || row < 0 || col >= columns || row >= rows) {
-      return;
+    for (const { col, row } of cells) {
+      if (col < 0 || row < 0 || col >= columns || row >= rows) continue;
+      const index = row * columns + col;
+      if (tiles[index] !== "empty") {
+        tiles[index] = "empty";
+        changed = true;
+      }
     }
 
-    const index = row * columns + col;
-
-    if (tiles[index] === type) return;
-
-    const nextTiles = tiles.slice();
-    nextTiles[index] = type;
-
-    return {
-      map: {
-        ...state.map,
-        tiles: nextTiles,
-      },
-    };
+    if (!changed) return;
+    return { map: { ...state.map, tiles } };
   });
 }
