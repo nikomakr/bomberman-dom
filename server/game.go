@@ -291,7 +291,7 @@ func (m *Match) step() bool {
 // sendState sends what changed since the last state: players, new bombs,
 // explosions and destroyed blocks. The events are then cleared.
 func (m *Match) sendState() {
-	m.sendToPlayers(TypeState, stateData{
+	state := stateData{
 		Tick:       m.tick,
 		Players:    m.changedPlayers(),
 		Bombs:      m.newBombs,
@@ -300,9 +300,17 @@ func (m *Match) sendState() {
 		PowerUps:   m.newPowerUps,
 		Collected:  m.collected,
 		Burnt:      m.burntPowerUps,
-	})
+	}
 	m.newBombs, m.explosions, m.destroyed = nil, nil, nil
 	m.newPowerUps, m.collected, m.burntPowerUps = nil, nil, nil
+	if state.isEmpty() {
+		return
+	}
+	m.sendToPlayers(TypeState, state)
+}
+
+func (s stateData) isEmpty() bool {
+	return len(s.Players) == 0 && len(s.Bombs) == 0 && len(s.Explosions) == 0 && len(s.Destroyed) == 0 && len(s.PowerUps) == 0 && len(s.Collected) == 0 && len(s.Burnt) == 0
 }
 
 // move moves a player up to dist tiles in the held directions. Each axis moves on its own, so a player slides along a wall instead of stopping.
