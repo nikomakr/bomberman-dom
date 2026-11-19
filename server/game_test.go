@@ -91,3 +91,51 @@ func TestStateReportsLastInput(t *testing.T) {
 		t.Fatalf("expected lastInput 5, got %d", got)
 	}
 }
+
+
+// newSendingMatch creates a one-player match whose messages can be read from
+// the returned client's send channel.
+func newSendingMatch() (*Match, *MatchPlayer, *Client) {
+	hub := newHub()
+	client := &Client{send: make(chan []byte, 64)}
+	hub.register(client)
+	entrants := []matchEntrant{{client: client, player: Player{ID: 1, Nickname: "Niko"}}}
+	m := NewMatch(hub, entrants, 42, nil)
+	return m, m.players[0], client
+}
+
+// drain empties a client's send channel and returns how many messages it held.
+func drain(c *Client) int {
+	count := 0
+	for {
+		select {
+		case <-c.send:
+			count++
+		default:
+			return count
+		}
+	}
+}
+
+func TestIdleTickSendsNothing(t *testing.T) {
+	m, p, client := newSendingMatch()
+	m.step() // the first state lists the player
+	drain(client)
+
+	startTick := m.tick
+	for i := 0; i < 5; i++ {
+		m.step()
+	}
+	if got := drain(client); got != 0 {
+		t.Fatalf("expected no messages while nothing changes, got %d", got)
+	}
+	if m.tick != startTick+5 {
+		t.Fatalf("expected the tick to keep counting to %d, got %d", startTick+5, m.tick)
+	}
+
+	press(m, p, inputData{Right: true, Seq: 1})
+	m.step()
+	if got := drain(client); got != 1 {
+		t.Fatalf("expected one state after moving, got %d", got)
+	}
+}
