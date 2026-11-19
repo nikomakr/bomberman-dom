@@ -62,3 +62,27 @@ export function startGame(data) {
     error: null,
   });
 }
+
+// Turns destroyed blocks into floor in one update, so the board redraws once
+// per message however many blocks a chain explosion breaks.
+export function destroyBlocks(cells) {
+  store.setState((state) => {
+    if (!state.map || cells.length === 0) return;
+
+    const { columns, rows } = state.map;
+    const tiles = state.map.tiles.slice();
+    let changed = false;
+
+    for (const { col, row } of cells) {
+      if (col < 0 || row < 0 || col >= columns || row >= rows) continue;
+      const index = row * columns + col;
+      if (tiles[index] !== "empty") {
+        tiles[index] = "empty";
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    return { map: { ...state.map, tiles } };
+  });
+}

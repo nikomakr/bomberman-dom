@@ -25,6 +25,8 @@ import {
 
 import { updatePowerUps, clearPowerUps } from "./powerUps.js";
 
+import { applyEntityChanges, clearEffects } from "./effects.js";
+
 // Time between two server updates, in milliseconds (the server sends 20 a second).
 const TICK_MS = 50;
 
@@ -53,6 +55,7 @@ function positionAt(player, now) {
  * Removes every player from the board and forgets them.
  */
 export function clearPlayers() {
+  clearEffects();
   for (const player of players.values()) {
     releaseEntity(player.entity);
   }
@@ -102,6 +105,7 @@ export function updatePlayers(data) {
   if (!data) return;
   applyMapChanges(data);
   updatePowerUps(data);
+  applyEntityChanges(data);
   if (!Array.isArray(data.players)) return;
   const now = performance.now();
 

@@ -1,4 +1,4 @@
-import { h } from '/framework/index.js';
+import { h, memo } from '/framework/index.js';
 import { startLoop, stopLoop } from '../game/loop.js';
 
 // The engine-owned layer for moving elements. The view never adds children to it.
@@ -46,7 +46,7 @@ export function Board(state) {
   return [
     h('div', { class: 'board', onMount: () => startLoop(entitiesLayer), onUnmount: stopLoop }, [
       h('div', { class: 'tiles' }, tiles),
-      h('div', { class: 'entities', ref: setEntitiesLayer }),
+      memo(() => h('div', { class: 'entities', ref: setEntitiesLayer }), []),
     ]),
   ];
 }
