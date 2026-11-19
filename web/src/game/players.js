@@ -5,7 +5,7 @@
 // positions it received. Each frame it draws the player somewhere between
 // them (interpolation), so the movement looks smooth at 60 FPS.
 
-import { store } from "../store.js";
+import { store, setOut } from "../store.js";
 
 import {
   startPrediction,
@@ -113,8 +113,9 @@ export function updatePlayers(data) {
     const player = players.get(update.id);
     if (!player) continue;
     if (update.id === localId) {
-      if (update.lives === 0) { 
+      if (update.lives === 0) {
         stopPrediction();
+        setOut();
       } else {
         setSpeed(update.speed);
         reconcile(update.position, update.lastInput);

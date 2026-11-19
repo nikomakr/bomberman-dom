@@ -194,6 +194,82 @@ body {
   font-weight: 700;
 }
 
+/* ---------- Game over ---------- */
+
+.game-over {
+  width: 100%;
+  max-width: 560px;
+  margin: 8vh auto 0;
+  padding: var(--space-xl);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.game-over h1 {
+  margin: 0 0 var(--space-lg);
+  color: var(--color-accent);
+  font-size: var(--font-size-heading);
+}
+
+.game-over-scores {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-xl);
+  padding: 0;
+  list-style: none;
+}
+
+.game-over-score {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--color-panel-light);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.game-over-winner {
+  outline: 2px solid var(--color-accent);
+  font-weight: 700;
+}
+
+.game-over-button {
+  padding: var(--space-md) var(--space-xl);
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: #111827;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.game-over-button:hover {
+  background: var(--color-accent-hover);
+}
+
+/* "You are out" floats over the board, so the layout does not move. */
+body:has(.board) #app {
+  position: fixed;
+  top: var(--space-md);
+  left: 50%;
+  z-index: 10;
+  width: auto;
+  transform: translateX(-50%);
+}
+
+.out-banner {
+  margin: 0;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-panel);
+  border: 2px solid var(--color-error);
+  border-radius: var(--radius);
+  color: var(--color-error);
+  font-weight: 700;
+}
+
 /* ---------- Chat ---------- */
 
 .chat {
