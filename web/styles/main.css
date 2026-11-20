@@ -384,7 +384,6 @@ body:has(.board) #app {
 }
 .entity[class*="tile-power-"] {
   animation: power-up-pulse 1.2s ease-in-out infinite;
-  
 }
 
 @keyframes power-up-pulse {
