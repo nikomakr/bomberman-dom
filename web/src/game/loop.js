@@ -6,7 +6,7 @@ import { updatePrediction } from "./prediction.js";
 import { updateEffects } from "./effects.js";
 
 // Shows the frame rate while developing.
-const SHOW_FPS = true;
+const SHOW_FPS = false;
 
 /**
  * Runs once per frame.
