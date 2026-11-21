@@ -231,8 +231,14 @@ body {
 }
 
 .game-over-winner {
-  outline: 2px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #111827;
   font-weight: 700;
+}
+
+.game-over-you {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px; /* drawn inside the row, so rows never overlap */
 }
 
 .game-over-button {

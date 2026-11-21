@@ -50,6 +50,7 @@ createApp({
   },
   select: (state) => ({
     page: state.page,
+    nickname: state.nickname,
     error: state.error,
     players: state.players,
     countdown: state.countdown,
