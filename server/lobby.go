@@ -92,6 +92,7 @@ type Lobby struct {
 	inputs chan playerInput
 	bombs  chan *Client
 	pauses chan pauseRequest
+	backs  chan struct{}
 	ended  chan struct{}
 
 	match *Match // the running match, or nil when no game is running
@@ -115,6 +116,7 @@ func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 		inputs:  make(chan playerInput),
 		bombs:   make(chan *Client),
 		pauses:  make(chan pauseRequest),
+		backs:   make(chan struct{}),
 		ended:   make(chan struct{}),
 		players: make(map[*Client]Player),
 		phase:   phaseWaiting,
@@ -146,6 +148,12 @@ func (l *Lobby) Pause(client *Client, action string) {
 	l.pauses <- pauseRequest{client: client, action: action}
 }
 
+// BackToStart tells every page still showing the last match's scores to go
+// back to the nickname page, because one of its players did.
+func (l *Lobby) BackToStart() {
+	l.backs <- struct{}{}
+}
+
 // Run handles one event at a time: a join, a leave, a chat, an input, a bomb,
 // the end of a match or a timer step.
 func (l *Lobby) Run() {
@@ -169,6 +177,8 @@ func (l *Lobby) Run() {
 			if l.match != nil {
 				l.match.Pause(req.client, req.action)
 			}
+		case <-l.backs:
+			l.backToStart()
 		case <-l.ended:
 			l.reset()
 		case <-l.tickChannel():
@@ -300,6 +310,22 @@ func (l *Lobby) reset() {
 	l.phase = phaseWaiting
 	l.secondsLeft = 0
 	log.Printf("lobby reset: ready for a new game")
+}
+
+// backToStart sends backToStart to everyone. Only pages on the scores screen
+// act on it, so players already waiting for the next game stay where they
+// are. It is ignored while a match is running.
+func (l *Lobby) backToStart() {
+	if l.match != nil {
+		return
+	}
+	message, err := NewMessage(TypeBackToStart, struct{}{})
+	if err != nil {
+		log.Printf("could not encode backToStart: %v", err)
+		return
+	}
+	log.Printf("back to start for everyone")
+	l.hub.broadcast(message)
 }
 
 // tickChannel returns the ticker's channel, or nil when no timer is running.
