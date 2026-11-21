@@ -459,13 +459,55 @@ body:has(.board) #app {
   pointer-events: none;
 }
 
+/* ---------- Match HUD ---------- */
+
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.hud-time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.hud-player {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.hud-player-name {
+  font-weight: 700;
+}
+
 /* ---------- Game layout ---------- */
 
 body:has(.board) {
   grid-template-columns: minmax(calc(var(--tile) * 15), 1fr) minmax(260px, 320px);
-  grid-template-areas: "board chat";
+  grid-template-areas:
+    "hud hud"
+    "board chat";
   align-items: start;
   justify-items: stretch;
+}
+body:has(.board) #hud {
+  grid-area: hud;
 }
 
 body:has(.board) #board {
@@ -489,6 +531,7 @@ body:has(.board) #chat {
   body:has(.board) {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
+      "hud"
       "board"
       "chat";
   }

@@ -5,6 +5,9 @@ export const store = createStore({
   page: "home",
   nickname: "",
   players: [],
+  lives: {},
+  score: {},
+  time: 0,
   countdown: null, // { phase, seconds } while the server counts, otherwise null
   messages: [],
   chatLength: 0,
@@ -60,6 +63,9 @@ export function startGame(data) {
   store.setState({
     page: "game",
     players: data.players,
+    lives: Object.fromEntries(data.players.map((player) => [player.id, player.lives])),
+    score: Object.fromEntries(data.players.map((player) => [player.id, player.score])),
+    time: 0,
     map: data.map,
     countdown: null,
     error: null,

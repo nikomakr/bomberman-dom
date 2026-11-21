@@ -3,6 +3,7 @@ import { store } from "./store.js";
 import { Board } from "./views/Board.js";
 import { Chat } from "./views/Chat.js";
 import { GameOver, OutBanner } from "./views/GameOver.js";
+import { Hud } from "./views/Hud.js";
 import { Lobby } from "./views/Lobby.js";
 import { Nickname } from "./views/Nickname.js";
 import "./net/socket.js";
@@ -80,5 +81,17 @@ createApp({
     map: state.map,
     paused: state.paused,
     out: state.out,
+  }),
+});
+
+createApp({
+  root: document.getElementById("hud"),
+  store,
+  view: Hud,
+  select: (state) => ({
+    page: state.page,
+    lives: state.lives,
+    score: state.score,
+    time: state.time,
   }),
 });

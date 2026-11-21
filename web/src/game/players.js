@@ -107,6 +107,26 @@ export function updatePlayers(data) {
   updatePowerUps(data);
   applyEntityChanges(data);
   if (!Array.isArray(data.players)) return;
+  store.setState((state) => {
+    const lives = { ...state.lives };
+    const score = { ...state.score };
+    let changed = false;
+
+    for (const update of data.players) {
+      if (update.lives !== undefined && lives[update.id] !== update.lives) {
+        lives[update.id] = update.lives;
+        changed = true;
+      }
+
+      if (update.score !== undefined && score[update.id] !== update.score) {
+        score[update.id] = update.score;
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    return { lives, score };
+  });
   const now = performance.now();
 
   for (const update of data.players) {
