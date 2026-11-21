@@ -91,6 +91,7 @@ type Lobby struct {
 	chats  chan chatRequest
 	inputs chan playerInput
 	bombs  chan *Client
+	pauses chan pauseRequest
 	ended  chan struct{}
 
 	match *Match // the running match, or nil when no game is running
@@ -113,6 +114,7 @@ func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 		chats:   make(chan chatRequest),
 		inputs:  make(chan playerInput),
 		bombs:   make(chan *Client),
+		pauses:  make(chan pauseRequest),
 		ended:   make(chan struct{}),
 		players: make(map[*Client]Player),
 		phase:   phaseWaiting,
@@ -139,6 +141,11 @@ func (l *Lobby) Bomb(client *Client) {
 	l.bombs <- client
 }
 
+// Pause passes a player's pause, continue or restart to the running match, if any.
+func (l *Lobby) Pause(client *Client, action string) {
+	l.pauses <- pauseRequest{client: client, action: action}
+}
+
 // Run handles one event at a time: a join, a leave, a chat, an input, a bomb,
 // the end of a match or a timer step.
 func (l *Lobby) Run() {
@@ -157,6 +164,10 @@ func (l *Lobby) Run() {
 		case client := <-l.bombs:
 			if l.match != nil {
 				l.match.Bomb(client)
+			}
+		case req := <-l.pauses:
+			if l.match != nil {
+				l.match.Pause(req.client, req.action)
 			}
 		case <-l.ended:
 			l.reset()

@@ -92,7 +92,6 @@ func TestStateReportsLastInput(t *testing.T) {
 	}
 }
 
-
 // newSendingMatch creates a one-player match whose messages can be read from
 // the returned client's send channel.
 func newSendingMatch() (*Match, *MatchPlayer, *Client) {

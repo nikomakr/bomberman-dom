@@ -1,6 +1,8 @@
 import { createKeyState, onGlobal } from "/framework/index.js";
 import { send } from "../net/socket.js";
 import { recordInput } from "./prediction.js";
+import { store } from "../store.js";
+import { sendPauseAction } from "../views/PauseBar.js";
 
 // Reads the held arrow keys once per frame and tells the server only when
 // they change. Holding a key sends one `input`; letting go sends another.
@@ -32,9 +34,39 @@ let seq = 0; // numbers each input, so the server can drop old ones
  * @param {KeyboardEvent} event
  */
 function onKeyDown(event) {
+  if (event.key === "Escape") {
+    if (!event.repeat) togglePause();
+    return;
+  }
+  if (store.getState().paused) {
+    onPausedKey(event);
+    return;
+  }
   if (!GAME_KEYS.has(event.key)) return;
   event.preventDefault();
   if (event.key === " " && !event.repeat) send("bomb", {});
+}
+
+/**
+ * Esc pauses the match, or continues it if it is paused. Players who are out
+ * cannot pause.
+ */
+function togglePause() {
+  const { paused, out } = store.getState();
+  if (out) return;
+  sendPauseAction(paused ? "continue" : "pause");
+}
+
+/**
+ * While paused, R restarts the match. The game keys do nothing, and never
+ * scroll the page.
+ *
+ * @param {KeyboardEvent} event
+ */
+function onPausedKey(event) {
+  if (GAME_KEYS.has(event.key)) event.preventDefault();
+  if (store.getState().out || event.repeat) return;
+  if (event.key === "r" || event.key === "R") sendPauseAction("restart");
 }
 
 /**
@@ -71,6 +103,19 @@ export function readInput() {
     right: (held & RIGHT) !== 0,
     seq,
   };
+  send("input", input);
+  recordInput(input);
+}
+
+/**
+ * Lets go of every direction, so nobody keeps walking after a pause. Runs
+ * every frame while paused, but only sends when a key was held.
+ */
+export function releaseInput() {
+  if (lastHeld === 0) return;
+  lastHeld = 0;
+  seq += 1;
+  const input = { up: false, down: false, left: false, right: false, seq };
   send("input", input);
   recordInput(input);
 }

@@ -62,6 +62,7 @@ type MatchPlayer struct {
 	bombsPlaced int       // bombs this player has on the map now
 	bombRange   int       // cells this player's flames reach in each direction
 	safeUntil   int       // tick until which flames cannot hurt this player
+	left        bool      // disconnected, so stays out after a restart
 }
 
 // playerUpdate is the part of a player that can change during a match.
@@ -114,6 +115,8 @@ type Match struct {
 	players  []*MatchPlayer
 	inputs   chan playerInput
 	leaves   chan *Client
+	pauses   chan pauseRequest
+	paused   bool   // while true the match does not tick, so nobody moves and every timer waits
 	onEnd    func() // called once when the match is over; may be nil
 	lastSent map[int]playerUpdate
 	tick     int
@@ -142,6 +145,7 @@ func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Matc
 		gameMap:  GenerateMap(seed),
 		inputs:   make(chan playerInput, inputQueueSize),
 		leaves:   make(chan *Client, maxPlayers),
+		pauses:   make(chan pauseRequest, inputQueueSize),
 		onEnd:    onEnd,
 		lastSent: make(map[int]playerUpdate),
 
@@ -156,20 +160,33 @@ func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Matc
 	spawns := spawnPositions(m.gameMap)
 	for i, e := range entrants {
 		p := &MatchPlayer{
-			ID:        e.player.ID,
-			Nickname:  e.player.Nickname,
-			Colour:    playerColours[i],
-			Position:  spawns[i],
-			Lives:     startLives,
-			client:    e.client,
-			speed:     baseSpeed,
-			bombsMax:  startBombs,
-			bombRange: startRange,
+			ID:       e.player.ID,
+			Nickname: e.player.Nickname,
+			Colour:   playerColours[i],
+			client:   e.client,
 		}
+		resetPlayer(p, spawns[i])
 		m.players = append(m.players, p)
 		m.lastSent[p.ID] = p.update()
 	}
 	return m
+}
+
+// resetPlayer gives a player the starting lives, score and power-ups and
+// puts them on their spawn. A player who left stays out.
+func resetPlayer(p *MatchPlayer, spawn Position) {
+	p.Position = spawn
+	p.Lives = startLives
+	if p.left {
+		p.Lives = 0
+	}
+	p.Score = 0
+	p.held = inputData{}
+	p.speed = baseSpeed
+	p.bombsMax = startBombs
+	p.bombsPlaced = 0
+	p.bombRange = startRange
+	p.safeUntil = 0
 }
 
 // Input passes a player's held directions to the match. It never blocks:
@@ -205,13 +222,17 @@ func (m *Match) Run() {
 		case in := <-m.inputs:
 			m.applyInput(in)
 		case client := <-m.bombRequests:
-			m.placeBomb(client)
+			if !m.paused {
+				m.placeBomb(client)
+			}
+		case req := <-m.pauses:
+			m.applyPause(req)
 		case client := <-m.leaves:
 			if m.removePlayer(client) {
 				return
 			}
 		case <-ticker.C:
-			if m.step() {
+			if m.onTick() {
 				return
 			}
 		}
@@ -231,7 +252,11 @@ func (m *Match) applyInput(in playerInput) {
 // the match is now over.
 func (m *Match) removePlayer(client *Client) bool {
 	p := m.playerFor(client)
-	if p == nil || p.Lives == 0 {
+	if p == nil {
+		return false
+	}
+	p.left = true
+	if p.Lives == 0 {
 		return false
 	}
 	p.Lives = 0
@@ -266,6 +291,14 @@ func (m *Match) checkForWinner() bool {
 		m.onEnd()
 	}
 	return true
+}
+
+// onTick steps the match unless it is paused. It reports whether the match is over.
+func (m *Match) onTick() bool {
+	if m.paused {
+		return false
+	}
+	return m.step()
 }
 
 // step moves every player still in the game, runs the bombs and flames,
