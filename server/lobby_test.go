@@ -391,3 +391,15 @@ func TestNobodyCanJoinAfterStart(t *testing.T) {
 		t.Errorf("error = %q, want the game-already-started error", got)
 	}
 }
+
+func TestBackToStartReachesEveryone(t *testing.T) {
+	l := newTestLobby(fastConfig())
+	ann, bob := newTestClient(l), newTestClient(l)
+
+	l.BackToStart()
+	for _, c := range []*Client{ann, bob} {
+		if m := recv(t, c); m.Type != TypeBackToStart {
+			t.Fatalf("expected %q, got %q", TypeBackToStart, m.Type)
+		}
+	}
+}

@@ -7,6 +7,8 @@ import {
   startGame,
   endGame,
   setPaused,
+  backToStart,
+  store,
 } from "../store.js";
 import { startMatch, updatePlayers } from "../game/players.js";
 
@@ -38,6 +40,12 @@ const dispatch = Object.freeze({
   end: (data) => {
     endGame(data);
     window.location.hash = "#/over";
+  },
+  // Someone left the scores screen, so everyone still on it goes back too.
+  backToStart: () => {
+    if (store.getState().page !== "over") return;
+    backToStart();
+    window.location.hash = "#/";
   },
 });
 
