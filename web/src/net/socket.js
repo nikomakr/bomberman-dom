@@ -6,6 +6,7 @@ import {
   setConnection,
   startGame,
   endGame,
+  setPaused,
 } from "../store.js";
 import { startMatch, updatePlayers } from "../game/players.js";
 
@@ -33,6 +34,7 @@ const dispatch = Object.freeze({
   // Positions change about 20 times a second, so they are kept outside the
   // store and do not re-render the page.
   state: (data) => updatePlayers(data),
+  pause: (data) => setPaused(data),
   end: (data) => {
     endGame(data);
     window.location.hash = "#/over";

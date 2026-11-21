@@ -13,6 +13,7 @@ export const store = createStore({
   map: null,
   out: false, // true once this player has lost all their lives
   result: null, // { winner, scores } after the match ends, otherwise null
+  paused: null, // { by } while the match is paused, otherwise null
 });
 
 // Actions: every change to the state goes through setState.
@@ -64,6 +65,7 @@ export function startGame(data) {
     error: null,
     out: false,
     result: null,
+    paused: null,
   });
 }
 
@@ -76,6 +78,7 @@ export function endGame(data) {
     page: "over",
     result: { winner: data.winner, scores: data.scores || [] },
     out: false,
+    paused: null,
   });
 }
 
@@ -90,7 +93,13 @@ export function backToStart() {
     map: null,
     out: false,
     result: null,
+    paused: null,
   });
+}
+
+// Pauses or continues the match on this page, with who did it.
+export function setPaused(data) {
+  store.setState({ paused: data.paused ? { by: data.by } : null });
 }
 
 // Turns destroyed blocks into floor in one update, so the board redraws once

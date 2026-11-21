@@ -1,5 +1,6 @@
 import { h, memo } from '/framework/index.js';
 import { startLoop, stopLoop } from '../game/loop.js';
+import { PauseBar } from './PauseBar.js';
 
 // The engine-owned layer for moving elements. The view never adds children to it.
 let entitiesLayer = null;
@@ -48,5 +49,6 @@ export function Board(state) {
       h('div', { class: 'tiles' }, tiles),
       memo(() => h('div', { class: 'entities', ref: setEntitiesLayer }), []),
     ]),
+    PauseBar(state),
   ];
 }

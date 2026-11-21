@@ -91,6 +91,13 @@ func (c *Client) handle(data []byte) {
 		c.lobby.Input(c, input)
 	case TypeBomb:
 		c.lobby.Bomb(c)
+	case TypePause:
+		action, ok := decodePause(msg.Data)
+		if !ok {
+			log.Printf("ignored pause with invalid data")
+			return
+		}
+		c.lobby.Pause(c, action)
 	default:
 		log.Printf("received %q", msg.Type)
 	}

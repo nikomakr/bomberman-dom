@@ -270,6 +270,45 @@ body:has(.board) #app {
   font-weight: 700;
 }
 
+/* ---------- Pause bar (under the map) ---------- */
+
+.pause-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  width: calc(var(--tile) * 15);
+  min-height: 2.75rem; /* the same height paused or not, so the map never moves */
+  margin: var(--space-sm) auto 0;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  color: var(--color-muted);
+  font-size: var(--font-size-small);
+}
+
+.pause-bar-paused {
+  background: var(--color-panel);
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.pause-bar-paused strong {
+  color: var(--color-accent);
+}
+
+.pause-key kbd {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-panel-light);
+  color: var(--color-text);
+  font-family: inherit;
+  font-weight: 700;
+}
+
 /* ---------- Chat ---------- */
 
 .chat {

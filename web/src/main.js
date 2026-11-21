@@ -74,5 +74,10 @@ createApp({
   root: document.getElementById("board"),
   store,
   view: Board,
-  select: (state) => ({ page: state.page, map: state.map }),
+  select: (state) => ({
+    page: state.page,
+    map: state.map,
+    paused: state.paused,
+    out: state.out,
+  }),
 });
