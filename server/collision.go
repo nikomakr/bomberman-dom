@@ -2,6 +2,8 @@ package main
 
 import "math"
 
+// Collision checks: which cells and player positions are free of walls, blocks and bombs.
+
 // CollisionGrid tracks the map and bomb positions for collision checks.
 type CollisionGrid struct {
 	gameMap *Map

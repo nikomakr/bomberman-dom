@@ -1,3 +1,5 @@
+// Frame timing: renders run at most once per frame, and createLoop runs a function every frame.
+
 // Jobs waiting for the next frame. A Set means the same job only runs once per frame.
 const queue = new Set();
 let frameId = null;

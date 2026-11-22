@@ -1,3 +1,5 @@
+// The lobby view: who has joined so far, and the countdown before the match starts.
+
 import { h } from "/framework/index.js";
 
 const MAX_PLAYERS = 4;

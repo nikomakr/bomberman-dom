@@ -1,3 +1,5 @@
+// The game loop: each frame it reads input, moves the players and updates bombs and flames.
+
 import { createLoop, createFpsMeter } from "/framework/index.js";
 import { initEntityPools, updateEntities } from "./entities.js";
 import { drawPlayers } from "./players.js";

@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+// The hub keeps track of every connected client and sends messages to one or all of them.
+
 // Hub maintains the set of active clients and broadcasts messages to the clients.
 // Guards access to the clients map with a mutex.
 type Hub struct {

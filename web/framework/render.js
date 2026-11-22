@@ -1,3 +1,5 @@
+// Turns virtual nodes into real DOM elements and puts them on the page.
+
 import { setEvents } from './events.js';
 import { registerHooks, flushMounts, unmount } from './lifecycle.js';
 import { isMemo, resolveMemo } from './vnode.js';

@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// One WebSocket connection per browser: reads its messages, passes them on, and writes queued replies.
+
 const (
 	writeWait      = 10 * time.Second    // longest time to write one message
 	pongWait       = 60 * time.Second    // longest silence allowed from the browser

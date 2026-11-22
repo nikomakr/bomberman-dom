@@ -1,3 +1,5 @@
+// Compares old and new virtual nodes and changes only the parts of the page that differ.
+
 import { createElement, setAttribute } from './render.js';
 import { setEvents } from './events.js';
 import { updateHooks, flushMounts, unmount } from './lifecycle.js';

@@ -1,3 +1,4 @@
+// Draws power-ups on the board as the server spawns them, and removes them once collected or burnt.
 
 import {
   acquireEntity,

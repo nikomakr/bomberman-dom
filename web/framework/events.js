@@ -1,3 +1,5 @@
+// Event handling: element events are caught once at the root, plus page-wide listeners and key helpers.
+
 import { flushRenders } from './scheduler.js';
 
 // Events that do not bubble cannot be caught at the root, so they are set on the element itself.

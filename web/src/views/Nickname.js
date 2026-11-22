@@ -1,3 +1,5 @@
+// The first page: choose a nickname and ask the server to join with it.
+
 import { h } from '/framework/index.js';
 import { store, setError, setNickname } from '../store.js';
 import { send } from '../net/socket.js';

@@ -1,3 +1,5 @@
+// Virtual nodes: h() describes an element as a plain object, and memo() skips redrawing parts that have not changed.
+
 /**
  * Creates a virtual node: a plain object describing an element.
  *
