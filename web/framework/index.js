@@ -1,3 +1,5 @@
+// The framework's public API: everything an app imports from /framework/index.js.
+
 export { h, memo } from './vnode.js';
 export { render } from './render.js';
 export { onKey } from './events.js';

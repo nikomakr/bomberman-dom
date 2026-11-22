@@ -1,3 +1,5 @@
+// Entry point: sets up the routes and puts each part of the page on screen.
+
 import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
 import { Board } from "./views/Board.js";

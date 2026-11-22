@@ -1,3 +1,5 @@
+// The chat view: the message list and the box for typing a new message.
+
 import { h, onKey } from "/framework/index.js";
 import { send } from "../net/socket.js";
 import { setChatLength } from "../store.js";

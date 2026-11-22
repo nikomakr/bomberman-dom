@@ -171,4 +171,7 @@ func TestCollisionGridNudgeToCorridor(t *testing.T) {
 	if math.Abs(y-1.1) > 1e-9 {
 		t.Errorf("nudge beyond maxNudge should leave y unchanged, got %v", y)
 	}
+	if math.Abs(x-1.1) > 1e-9 {
+		t.Errorf("nudge beyond maxNudge should leave x unchanged, got %v", x)
+	}
 }

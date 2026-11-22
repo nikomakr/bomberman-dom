@@ -7,6 +7,8 @@ import (
 	"unicode/utf8"
 )
 
+// Chat: checks each player's message and sends it to every player, through the lobby.
+
 const maxChatLen = 200
 
 type chatIn struct {

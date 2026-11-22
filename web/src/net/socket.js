@@ -1,3 +1,5 @@
+// The WebSocket connection to the server: sends messages and hands each incoming one to the store or the game.
+
 import {
   setPlayers,
   setCountdown,

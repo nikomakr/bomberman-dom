@@ -1,3 +1,5 @@
+// Lifecycle hooks: runs an element's ref, onMount and onUnmount at the right moments.
+
 // element → { ref, onMount, onUnmount } for elements that declared any of them.
 const hooks = new WeakMap();
 

@@ -1,3 +1,5 @@
+// The app's shared state, and the actions that change it.
+
 import { createStore } from "/framework/index.js";
 
 // The one store shared by every page.

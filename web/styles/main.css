@@ -1,3 +1,5 @@
+/* Styles for the whole game: theme colours first, then one section per page and view. */
+
 :root {
   /* Theme */
   --color-background: #111827;
@@ -397,24 +399,48 @@ body:has(.board) #app {
   display: block;
   width: var(--tile);
   height: var(--tile);
-  background-image: url('/assets/tileset.png');
+  background-image: url("/assets/tileset.png");
   background-repeat: no-repeat;
   background-size: calc(var(--tile) * 12) var(--tile);
   image-rendering: pixelated;
 }
 
-.tile-floor       { background-position: 0 0; }
-.tile-wall        { background-position: calc(var(--tile) * -1) 0; }
-.tile-block       { background-position: calc(var(--tile) * -2) 0; }
-.tile-bomb        { background-position: calc(var(--tile) * -3) 0; }
-.tile-flame       { background-position: calc(var(--tile) * -4) 0; }
-.tile-power-bomb  { background-position: calc(var(--tile) * -5) 0; }
-.tile-power-flame { background-position: calc(var(--tile) * -6) 0; }
-.tile-power-speed { background-position: calc(var(--tile) * -7) 0; }
-.tile-player-1    { background-position: calc(var(--tile) * -8) 0; }
-.tile-player-2    { background-position: calc(var(--tile) * -9) 0; }
-.tile-player-3    { background-position: calc(var(--tile) * -10) 0; }
-.tile-player-4    { background-position: calc(var(--tile) * -11) 0; }
+.tile-floor {
+  background-position: 0 0;
+}
+.tile-wall {
+  background-position: calc(var(--tile) * -1) 0;
+}
+.tile-block {
+  background-position: calc(var(--tile) * -2) 0;
+}
+.tile-bomb {
+  background-position: calc(var(--tile) * -3) 0;
+}
+.tile-flame {
+  background-position: calc(var(--tile) * -4) 0;
+}
+.tile-power-bomb {
+  background-position: calc(var(--tile) * -5) 0;
+}
+.tile-power-flame {
+  background-position: calc(var(--tile) * -6) 0;
+}
+.tile-power-speed {
+  background-position: calc(var(--tile) * -7) 0;
+}
+.tile-player-1 {
+  background-position: calc(var(--tile) * -8) 0;
+}
+.tile-player-2 {
+  background-position: calc(var(--tile) * -9) 0;
+}
+.tile-player-3 {
+  background-position: calc(var(--tile) * -10) 0;
+}
+.tile-player-4 {
+  background-position: calc(var(--tile) * -11) 0;
+}
 
 /* ---------- Moving elements ---------- */
 
@@ -467,7 +493,9 @@ body:has(.board) #app {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-md);
-  width: 100%;
+  width: calc(var(--tile) * 15); /* the same width as the map */
+  max-width: 100%;
+  margin: 0 auto;
   padding: var(--space-md);
   background: var(--color-panel);
   border: 1px solid var(--color-border);
@@ -492,16 +520,19 @@ body:has(.board) #app {
   gap: var(--space-sm);
 }
 
-.hud-player-name {
+.player-name {
   font-weight: 700;
 }
 
 /* ---------- Game layout ---------- */
 
 body:has(.board) {
-  grid-template-columns: minmax(calc(var(--tile) * 15), 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(calc(var(--tile) * 15), 1fr) minmax(
+      260px,
+      320px
+    );
   grid-template-areas:
-    "hud hud"
+    "hud ."
     "board chat";
   align-items: start;
   justify-items: stretch;

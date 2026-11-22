@@ -1,3 +1,5 @@
+// Draws bombs and their flames on the board, and removes flames once they burn out.
+
 import { acquireEntity, releaseEntity } from "./entities.js";
 
 import { destroyBlocks } from "../store.js";

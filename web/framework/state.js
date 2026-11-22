@@ -1,3 +1,5 @@
+// The store: holds the app's state and tells subscribers when it changes.
+
 /**
  * Whether two values are the same, looking one level inside objects and
  * arrays: `{ a: 1 }` and `{ a: 1 }` are equal, as are `[x, y]` and `[x, y]`.

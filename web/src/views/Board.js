@@ -1,3 +1,5 @@
+// The game board view: draws the map tiles and holds the layer that the game draws moving things into.
+
 import { h, memo } from '/framework/index.js';
 import { startLoop, stopLoop } from '../game/loop.js';
 import { PauseBar } from './PauseBar.js';

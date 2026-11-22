@@ -2,6 +2,8 @@ package main
 
 import "math/rand"
 
+// Map generation: builds the 15x13 board of walls and blocks from a seed, keeping each starting corner clear.
+
 const (
 	mapColumns = 15
 	mapRows    = 13
