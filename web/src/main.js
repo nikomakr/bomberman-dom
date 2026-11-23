@@ -83,6 +83,7 @@ createApp({
     map: state.map,
     paused: state.paused,
     out: state.out,
+    detonator: state.detonator,
   }),
 });
 

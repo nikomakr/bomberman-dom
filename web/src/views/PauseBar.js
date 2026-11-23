@@ -31,7 +31,10 @@ function keyHint(key, label) {
  */
 export function PauseBar(state) {
   if (!state.paused) {
-    return h("div", { class: "pause-bar" }, state.out ? [] : [keyHint("Esc", "Pause")]);
+    if (state.out) return h("div", { class: "pause-bar" }, []);
+    const keys = [keyHint("Esc", "Pause")];
+    if (state.detonator) keys.push(keyHint("E", "Detonate"));
+    return h("div", { class: "pause-bar" }, keys);
   }
 
   const keys = state.out ? [] : [keyHint("Esc", "Continue"), keyHint("R", "Restart")];

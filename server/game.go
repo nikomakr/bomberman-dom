@@ -63,6 +63,7 @@ type MatchPlayer struct {
 	bombRange   int       // cells this player's flames reach in each direction
 	safeUntil   int       // tick until which flames cannot hurt this player
 	left        bool      // disconnected, so stays out after a restart
+	detonator   bool      // can explode their own bombs early with the Detonator
 }
 
 // playerUpdate is the part of a player that can change during a match.
@@ -76,6 +77,7 @@ type playerUpdate struct {
 	Range     int      `json:"range"` // cells the player's flames reach
 	Speed     float64  `json:"speed"` // tiles per second
 	LastInput int      `json:"lastInput"`
+	Detonator bool     `json:"detonator"` // has the Detonator power-up
 }
 
 type matchStartData struct {
@@ -121,13 +123,14 @@ type Match struct {
 	lastSent map[int]playerUpdate
 	tick     int
 
-	bombRequests  chan *Client
-	bombs         map[gridCell]*bomb
-	nextBombID    int
-	flames        map[gridCell]*flame
-	powerUps      map[gridCell]*powerUp
-	nextPowerUpID int
-	rng           *rand.Rand // the match's own random numbers, from its seed
+	bombRequests     chan *Client
+	detonateRequests chan *Client
+	bombs            map[gridCell]*bomb
+	nextBombID       int
+	flames           map[gridCell]*flame
+	powerUps         map[gridCell]*powerUp
+	nextPowerUpID    int
+	rng              *rand.Rand // the match's own random numbers, from its seed
 
 	// Events since the last state message; sent and cleared by sendState.
 	newBombs      []bombData
@@ -149,11 +152,12 @@ func NewMatch(hub *Hub, entrants []matchEntrant, seed int64, onEnd func()) *Matc
 		onEnd:    onEnd,
 		lastSent: make(map[int]playerUpdate),
 
-		bombRequests: make(chan *Client, inputQueueSize),
-		bombs:        make(map[gridCell]*bomb),
-		flames:       make(map[gridCell]*flame),
-		powerUps:     make(map[gridCell]*powerUp),
-		rng:          newMatchRand(seed),
+		bombRequests:     make(chan *Client, inputQueueSize),
+		detonateRequests: make(chan *Client, inputQueueSize),
+		bombs:            make(map[gridCell]*bomb),
+		flames:           make(map[gridCell]*flame),
+		powerUps:         make(map[gridCell]*powerUp),
+		rng:              newMatchRand(seed),
 	}
 	m.grid = NewCollisionGrid(&m.gameMap)
 
@@ -187,6 +191,7 @@ func resetPlayer(p *MatchPlayer, spawn Position) {
 	p.bombsPlaced = 0
 	p.bombRange = startRange
 	p.safeUntil = 0
+	p.detonator = false
 }
 
 // Input passes a player's held directions to the match. It never blocks:
@@ -224,6 +229,10 @@ func (m *Match) Run() {
 		case client := <-m.bombRequests:
 			if !m.paused {
 				m.placeBomb(client)
+			}
+		case client := <-m.detonateRequests:
+			if !m.paused {
+				m.detonate(client)
 			}
 		case req := <-m.pauses:
 			m.applyPause(req)
@@ -441,6 +450,7 @@ func (p *MatchPlayer) update() playerUpdate {
 		Range:     p.bombRange,
 		Speed:     p.speed,
 		LastInput: p.held.Seq,
+		Detonator: p.detonator,
 	}
 }
 

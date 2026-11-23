@@ -42,6 +42,10 @@ function onKeyDown(event) {
     onPausedKey(event);
     return;
   }
+  if ((event.key === "e" || event.key === "E") && !event.repeat) {
+    if (store.getState().detonator) send("detonate", {});
+    return;
+  }
   if (!GAME_KEYS.has(event.key)) return;
   event.preventDefault();
   if (event.key === " " && !event.repeat) send("bomb", {});

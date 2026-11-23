@@ -93,6 +93,8 @@ func (c *Client) handle(data []byte) {
 		c.lobby.Input(c, input)
 	case TypeBomb:
 		c.lobby.Bomb(c)
+	case TypeDetonate:
+		c.lobby.Detonate(c)
 	case TypeBackToStart:
 		c.lobby.BackToStart()
 	case TypePause:
