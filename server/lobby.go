@@ -86,14 +86,15 @@ type Lobby struct {
 	hub    *Hub
 	config LobbyConfig
 
-	joins  chan joinRequest
-	leaves chan *Client
-	chats  chan chatRequest
-	inputs chan playerInput
-	bombs  chan *Client
-	pauses chan pauseRequest
-	backs  chan struct{}
-	ended  chan struct{}
+	joins     chan joinRequest
+	leaves    chan *Client
+	chats     chan chatRequest
+	inputs    chan playerInput
+	bombs     chan *Client
+	detonates chan *Client
+	pauses    chan pauseRequest
+	backs     chan struct{}
+	ended     chan struct{}
 
 	match *Match // the running match, or nil when no game is running
 
@@ -108,18 +109,19 @@ type Lobby struct {
 // NewLobby creates an empty lobby. Call Run in its own goroutine to start it.
 func NewLobby(hub *Hub, config LobbyConfig) *Lobby {
 	return &Lobby{
-		hub:     hub,
-		config:  config,
-		joins:   make(chan joinRequest),
-		leaves:  make(chan *Client),
-		chats:   make(chan chatRequest),
-		inputs:  make(chan playerInput),
-		bombs:   make(chan *Client),
-		pauses:  make(chan pauseRequest),
-		backs:   make(chan struct{}),
-		ended:   make(chan struct{}),
-		players: make(map[*Client]Player),
-		phase:   phaseWaiting,
+		hub:       hub,
+		config:    config,
+		joins:     make(chan joinRequest),
+		leaves:    make(chan *Client),
+		chats:     make(chan chatRequest),
+		inputs:    make(chan playerInput),
+		bombs:     make(chan *Client),
+		detonates: make(chan *Client),
+		pauses:    make(chan pauseRequest),
+		backs:     make(chan struct{}),
+		ended:     make(chan struct{}),
+		players:   make(map[*Client]Player),
+		phase:     phaseWaiting,
 	}
 }
 
@@ -141,6 +143,11 @@ func (l *Lobby) Input(client *Client, input inputData) {
 // Bomb passes a player's bomb request to the running match, if any.
 func (l *Lobby) Bomb(client *Client) {
 	l.bombs <- client
+}
+
+// Detonate passes a player's Detonator key press to the running match, if any.
+func (l *Lobby) Detonate(client *Client) {
+	l.detonates <- client
 }
 
 // Pause passes a player's pause, continue or restart to the running match, if any.
@@ -172,6 +179,10 @@ func (l *Lobby) Run() {
 		case client := <-l.bombs:
 			if l.match != nil {
 				l.match.Bomb(client)
+			}
+		case client := <-l.detonates:
+			if l.match != nil {
+				l.match.Detonate(client)
 			}
 		case req := <-l.pauses:
 			if l.match != nil {

@@ -19,6 +19,7 @@ export const store = createStore({
   out: false, // true once this player has lost all their lives
   result: null, // { winner, scores } after the match ends, otherwise null
   paused: null, // { by } while the match is paused, otherwise null
+  detonator: false, // this player has the Detonator power-up
 });
 
 // Actions: every change to the state goes through setState.
@@ -65,6 +66,7 @@ export function startGame(data) {
   store.setState({
     page: "game",
     players: data.players,
+    detonator: false,
     lives: Object.fromEntries(data.players.map((player) => [player.id, player.lives])),
     score: Object.fromEntries(data.players.map((player) => [player.id, player.score])),
     time: 0,

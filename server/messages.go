@@ -17,12 +17,14 @@ const (
 	TypeEnd         = "end"
 	TypePause       = "pause"
 	TypeBackToStart = "backToStart"
+	TypeDetonate    = "detonate"
 )
 
 var knownTypes = map[string]bool{
 	TypeJoin: true, TypeLobby: true, TypeCountdown: true, TypeStart: true,
 	TypeState: true, TypeInput: true, TypeBomb: true, TypeChat: true,
 	TypeError: true, TypeEnd: true, TypePause: true, TypeBackToStart: true,
+	TypeDetonate: true,
 }
 
 // Message is the envelope for every WebSocket message:

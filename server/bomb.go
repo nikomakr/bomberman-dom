@@ -59,6 +59,34 @@ func (m *Match) Bomb(client *Client) {
 	}
 }
 
+// Detonate asks the match to explode a player's bombs now. It never blocks.
+func (m *Match) Detonate(client *Client) {
+	select {
+	case m.detonateRequests <- client:
+	default:
+		log.Printf("detonate queue full, detonate dropped")
+	}
+}
+
+// detonate makes every bomb of a player with the Detonator explode on the
+// next tick, through the normal explosion, so chains and damage still apply.
+func (m *Match) detonate(client *Client) {
+	p := m.playerFor(client)
+	if p == nil || p.Lives == 0 || !p.detonator {
+		return
+	}
+	count := 0
+	for _, b := range m.bombs {
+		if b.owner == p {
+			b.fuse = 1
+			count++
+		}
+	}
+	if count > 0 {
+		log.Printf("%q detonated %d bomb(s)", p.Nickname, count)
+	}
+}
+
 // placeBomb puts a bomb on the cell under the centre of the player, if they
 // still have a bomb to place and the cell is free.
 func (m *Match) placeBomb(client *Client) {

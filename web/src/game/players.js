@@ -124,8 +124,12 @@ export function updatePlayers(data) {
       }
     }
 
+    const self = data.players.find((update) => update.id === localId);
+    const detonator = self && self.detonator !== undefined ? self.detonator : state.detonator;
+    if (detonator !== state.detonator) changed = true;
+
     if (!changed) return;
-    return { lives, score };
+    return { lives, score, detonator };
   });
   const now = performance.now();
 

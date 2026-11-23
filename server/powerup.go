@@ -12,25 +12,30 @@ const (
 	dropChance = 0.3 // chance that a destroyed block drops a power-up
 	speedStep  = 1.0 // tiles per second added by a Speed power-up
 	maxSpeed   = 8.0 // fastest a player can go, in tiles per second
+	maxLives   = 5   // most lives a player can have with 1 Up power-ups
 )
 
 type powerUpKind string
 
 const (
-	powerUpBombs powerUpKind = "bomb"
-	powerUpFlame powerUpKind = "flame"
-	powerUpSpeed powerUpKind = "speed"
+	powerUpBombs     powerUpKind = "bomb"
+	powerUpFlame     powerUpKind = "flame"
+	powerUpSpeed     powerUpKind = "speed"
+	powerUpLife      powerUpKind = "life"      // bonus: 1 Up
+	powerUpDetonator powerUpKind = "detonator" // bonus: Detonator
 )
 
 // powerUpKinds lists every kind, in a fixed order, for the random pick.
-var powerUpKinds = []powerUpKind{powerUpBombs, powerUpFlame, powerUpSpeed}
+var powerUpKinds = []powerUpKind{powerUpBombs, powerUpFlame, powerUpSpeed, powerUpLife, powerUpDetonator}
 
 // powerUpEffects is the data that says what each kind does to a player.
 // Adding a power-up means adding a kind and one entry here.
 var powerUpEffects = map[powerUpKind]func(p *MatchPlayer){
-	powerUpBombs: func(p *MatchPlayer) { p.bombsMax++ },
-	powerUpFlame: func(p *MatchPlayer) { p.bombRange++ },
-	powerUpSpeed: func(p *MatchPlayer) { p.speed = min(p.speed+speedStep, maxSpeed) },
+	powerUpBombs:     func(p *MatchPlayer) { p.bombsMax++ },
+	powerUpFlame:     func(p *MatchPlayer) { p.bombRange++ },
+	powerUpSpeed:     func(p *MatchPlayer) { p.speed = min(p.speed+speedStep, maxSpeed) },
+	powerUpLife:      func(p *MatchPlayer) { p.Lives = min(p.Lives+1, maxLives) },
+	powerUpDetonator: func(p *MatchPlayer) { p.detonator = true },
 }
 
 // powerUp is one power-up lying on the map.
