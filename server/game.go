@@ -55,15 +55,16 @@ type MatchPlayer struct {
 	Lives    int      `json:"lives"`
 	Score    int      `json:"score"`
 
-	client      *Client   // not exported, so never sent as JSON
-	held        inputData // the newest input applied
-	speed       float64   // tiles per second
-	bombsMax    int       // bombs this player can have on the map at once
-	bombsPlaced int       // bombs this player has on the map now
-	bombRange   int       // cells this player's flames reach in each direction
-	safeUntil   int       // tick until which flames cannot hurt this player
-	left        bool      // disconnected, so stays out after a restart
-	detonator   bool      // can explode their own bombs early with the Detonator
+	client      *Client       // not exported, so never sent as JSON
+	held        inputData     // the newest input applied
+	speed       float64       // tiles per second
+	bombsMax    int           // bombs this player can have on the map at once
+	bombsPlaced int           // bombs this player has on the map now
+	bombRange   int           // cells this player's flames reach in each direction
+	safeUntil   int           // tick until which flames cannot hurt this player
+	left        bool          // disconnected, so stays out after a restart
+	detonator   bool          // can explode their own bombs early with the Detonator
+	powerUps    []powerUpKind // collected this match; one is dropped when they are out
 }
 
 // playerUpdate is the part of a player that can change during a match.
@@ -192,6 +193,7 @@ func resetPlayer(p *MatchPlayer, spawn Position) {
 	p.bombRange = startRange
 	p.safeUntil = 0
 	p.detonator = false
+	p.powerUps = nil
 }
 
 // Input passes a player's held directions to the match. It never blocks:

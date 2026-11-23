@@ -92,3 +92,53 @@ func TestBonusPowerUpsDropAtRandom(t *testing.T) {
 		}
 	}
 }
+
+// knockOut puts a player in a flame on their last life.
+func knockOut(m *Match, p *MatchPlayer) {
+	p.Lives = 1
+	m.flames[centreCell(p.Position)] = &flame{owner: p, ticks: flameTicks}
+	m.burnPlayers()
+}
+
+func TestPlayerOutDropsOneOfTheirPowerUps(t *testing.T) {
+	m, ann, _, _ := newPauseMatch()
+	ann.powerUps = []powerUpKind{powerUpFlame}
+
+	knockOut(m, ann)
+	pu, ok := m.powerUps[centreCell(ann.Position)]
+	if !ok || pu.kind != powerUpFlame {
+		t.Fatalf("expected ann's flame power-up where she was knocked out, got %+v", pu)
+	}
+	if len(m.newPowerUps) != 1 {
+		t.Fatalf("expected every client to be told about the drop, got %d new power-ups", len(m.newPowerUps))
+	}
+}
+
+func TestPlayerOutWithNoPowerUpsDropsARandomOne(t *testing.T) {
+	m, ann, _, _ := newPauseMatch()
+
+	knockOut(m, ann)
+	if _, ok := m.powerUps[centreCell(ann.Position)]; !ok {
+		t.Fatal("expected a random power-up where ann was knocked out")
+	}
+}
+
+func TestLosingALifeDropsNothing(t *testing.T) {
+	m, ann, _, _ := newPauseMatch()
+	m.flames[centreCell(ann.Position)] = &flame{owner: ann, ticks: flameTicks}
+
+	m.burnPlayers()
+	if ann.Lives != startLives-1 || len(m.powerUps) != 0 {
+		t.Fatalf("expected one life lost and no drop, got %d lives and %d power-ups", ann.Lives, len(m.powerUps))
+	}
+}
+
+func TestCollectedPowerUpsAreRemembered(t *testing.T) {
+	m, p := newTestMatch()
+	m.powerUps[centreCell(p.Position)] = &powerUp{id: 1, kind: powerUpSpeed}
+
+	m.collectPowerUps()
+	if len(p.powerUps) != 1 || p.powerUps[0] != powerUpSpeed {
+		t.Fatalf("expected the speed power-up to be remembered, got %v", p.powerUps)
+	}
+}
