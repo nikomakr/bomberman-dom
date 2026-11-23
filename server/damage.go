@@ -58,6 +58,7 @@ func (m *Match) burnPlayers() bool {
 		log.Printf("%q was hit (%d lives left)", p.Nickname, p.Lives)
 		if p.Lives == 0 {
 			log.Printf("%q is out", p.Nickname)
+			m.dropOnDeath(p)
 			someoneOut = true
 		}
 	}

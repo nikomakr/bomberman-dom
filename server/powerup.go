@@ -64,12 +64,39 @@ func (m *Match) dropPowerUps(cells []gridCell) {
 		if m.rng.Float64() >= dropChance {
 			continue
 		}
-		m.nextPowerUpID++
-		pu := &powerUp{id: m.nextPowerUpID, kind: powerUpKinds[m.rng.IntN(len(powerUpKinds))]}
-		m.powerUps[c] = pu
-		m.newPowerUps = append(m.newPowerUps, powerUpData{ID: pu.id, Kind: pu.kind, Col: c.col, Row: c.row})
-		log.Printf("power-up %d (%s) at (%d, %d)", pu.id, pu.kind, c.col, c.row)
+		m.placePowerUp(c, m.randomKind())
 	}
+}
+
+// randomKind picks any power-up kind, each as likely as the others.
+func (m *Match) randomKind() powerUpKind {
+	return powerUpKinds[m.rng.IntN(len(powerUpKinds))]
+}
+
+// placePowerUp puts a power-up of the given kind on a cell and tells every
+// client about it.
+func (m *Match) placePowerUp(c gridCell, kind powerUpKind) {
+	m.nextPowerUpID++
+	pu := &powerUp{id: m.nextPowerUpID, kind: kind}
+	m.powerUps[c] = pu
+	m.newPowerUps = append(m.newPowerUps, powerUpData{ID: pu.id, Kind: pu.kind, Col: c.col, Row: c.row})
+	log.Printf("power-up %d (%s) at (%d, %d)", pu.id, pu.kind, c.col, c.row)
+}
+
+// dropOnDeath leaves a power-up where a player lost their last life: one of
+// the power-ups they collected, or a random one if they had none. A cell
+// that already holds a power-up keeps it.
+func (m *Match) dropOnDeath(p *MatchPlayer) {
+	c := centreCell(p.Position)
+	if _, taken := m.powerUps[c]; taken {
+		return
+	}
+	kind := m.randomKind()
+	if len(p.powerUps) > 0 {
+		kind = p.powerUps[m.rng.IntN(len(p.powerUps))]
+	}
+	log.Printf("%q dropped a power-up", p.Nickname)
+	m.placePowerUp(c, kind)
 }
 
 // burnPowerUp destroys a power-up a flame reaches, if there is one.
@@ -96,6 +123,7 @@ func (m *Match) collectPowerUps() {
 		}
 		delete(m.powerUps, c)
 		powerUpEffects[pu.kind](p)
+		p.powerUps = append(p.powerUps, pu.kind)
 		p.Score += pointsPowerUp
 		m.collected = append(m.collected, collectedData{ID: pu.id, Player: p.ID})
 		log.Printf("%q collected power-up %d (%s)", p.Nickname, pu.id, pu.kind)
