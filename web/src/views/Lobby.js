@@ -1,6 +1,7 @@
 // The lobby view: who has joined so far, and the countdown before the match starts.
 
 import { h } from "/framework/index.js";
+import { playerColour } from "../colours.js";
 
 const MAX_PLAYERS = 4;
 
@@ -35,8 +36,12 @@ export function Lobby(state) {
     h(
       "ul",
       { class: "lobby-players" },
-      players.map((player) =>
-        h("li", { key: player.id, class: "lobby-player" }, player.nickname),
+      players.map((player, index) =>
+        h(
+          "li",
+          { key: player.id, class: `lobby-player lobby-player-${playerColour(player, index)}` },
+          player.nickname,
+        ),
       ),
     ),
     timer ? h("p", { class: "lobby-timer", role: "status" }, timer) : null,

@@ -333,7 +333,7 @@ body:has(.board) #app {
 .chat-messages {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   min-height: 0;
   max-height: 280px;
   margin: 0;
@@ -348,10 +348,8 @@ body:has(.board) #app {
 }
 
 .chat-message {
-  padding: var(--space-sm);
-  background: var(--color-panel-light);
-  border-radius: 8px;
   overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .chat-nickname {
@@ -363,9 +361,63 @@ body:has(.board) #app {
   font-size: var(--font-size-small);
 }
 
+/* Each player's colour in the chat and the scoreboard, light enough to
+   read on the panels. */
+.chat-player-red .chat-nickname,
+.chat-player-red .chat-text,
+.hud-player-red,
+.lobby-player-red {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+.chat-player-blue .chat-nickname,
+.chat-player-blue .chat-text,
+.hud-player-blue,
+.lobby-player-blue {
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+
+.chat-player-green .chat-nickname,
+.chat-player-green .chat-text,
+.hud-player-green,
+.lobby-player-green {
+  color: #4ade80;
+  border-color: #4ade80;
+}
+
+.chat-player-yellow .chat-nickname,
+.chat-player-yellow .chat-text,
+.hud-player-yellow,
+.lobby-player-yellow {
+  color: #facc15;
+  border-color: #facc15;
+}
+
 .chat-text {
-  margin: var(--space-xs) 0 0;
   white-space: pre-wrap;
+}
+
+.chat-counter,
+.nickname-counter {
+  margin: calc(var(--space-sm) * -1) 0 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-small);
+  text-align: right;
+}
+
+/* In a match the chat is as tall as the map: messages fill the space and
+   the box for typing stays at the bottom. */
+body:has(.board) .chat {
+  height: calc(var(--tile) * 13);
+}
+
+body:has(.board) .chat-messages,
+body:has(.board) .chat-messages:empty {
+  display: flex;
+  flex: 1;
+  max-height: none;
 }
 
 /* ---------- Game board ---------- */
@@ -514,9 +566,9 @@ body:has(.board) #app {
 }
 
 .hud-players {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: repeat(2, auto); /* two players per line */
+  gap: var(--space-xs) var(--space-lg);
 }
 
 .hud-player {
@@ -571,6 +623,15 @@ body:has(.board) #chat {
       "hud"
       "board"
       "chat";
+  }
+
+  /* Under the map there is no height to match, so the chat sizes itself. */
+  body:has(.board) .chat {
+    height: auto;
+  }
+
+  body:has(.board) .chat-messages {
+    max-height: 280px;
   }
 
   .nickname,

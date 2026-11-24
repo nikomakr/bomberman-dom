@@ -1,8 +1,9 @@
 // The first page: choose a nickname and ask the server to join with it.
 
 import { h } from '/framework/index.js';
-import { store, setError, setNickname } from '../store.js';
+import { store, setError, setNickname, setNicknameLength } from '../store.js';
 import { send } from '../net/socket.js';
+import { countChars, limitChars } from '../text.js';
 
 const MAX_LENGTH = 12;
 
@@ -35,7 +36,7 @@ function onSubmit(event) {
   event.preventDefault();
 
   const nickname = event.target.elements.nickname.value.trim();
-  const length = [...nickname].length;
+  const length = countChars(nickname);
   if (length < 1 || length > MAX_LENGTH) {
     setError(`Your nickname must be 1 to ${MAX_LENGTH} characters long.`);
     return;
@@ -46,26 +47,31 @@ function onSubmit(event) {
   send('join', { nickname });
 }
 
+function updateNicknameLength(event, input) {
+  setNicknameLength(limitChars(event, input, MAX_LENGTH));
+}
+
 /**
  * The nickname page, shown on #/.
  *
- * @param {{ error: string|null }} state
+ * @param {{ error: string|null, nicknameLength: number }} state
  * @returns {Object} Virtual node.
  */
 export function Nickname(state) {
   return h('main', { class: 'nickname' }, [
-    h('h1', {}, 'Bomberman DOM'),
+    h('h1', {}, 'Create your nickname'),
     h('form', { class: 'nickname-form', on: { submit: onSubmit } }, [
-      h('label', { for: 'nickname' }, 'Choose a nickname'),
+      h('label', { for: 'nickname' }, 'Nickname'),
       h('input', {
         id: 'nickname',
         name: 'nickname',
         type: 'text',
-        maxlength: MAX_LENGTH,
         autocomplete: 'off',
-        placeholder: 'Nickname',
+        placeholder: 'Up to 12 characters',
+        on: { input: updateNicknameLength, compositionend: updateNicknameLength },
         onMount: (el) => el.focus(),
       }),
+      h('p', { class: 'nickname-counter' }, `${state.nicknameLength} / ${MAX_LENGTH}`),
       h('p', { class: 'nickname-error', role: 'alert' }, state.error || ''),
       h('button', { type: 'submit' }, 'Join'),
     ]),
