@@ -4,7 +4,7 @@ import { createRouter, createApp } from "/framework/index.js";
 import { store } from "./store.js";
 import { Board } from "./views/Board.js";
 import { Chat } from "./views/Chat.js";
-import { GameOver, OutBanner } from "./views/GameOver.js";
+import { GameOver, OutBanner, ConnectionLost } from "./views/GameOver.js";
 import { Hud } from "./views/Hud.js";
 import { Lobby } from "./views/Lobby.js";
 import { Nickname } from "./views/Nickname.js";
@@ -45,6 +45,7 @@ createApp({
   root: document.getElementById("app"),
   store,
   view: (state) => {
+    if (state.page === "lost") return ConnectionLost();
     if (state.page === "nickname") return Nickname(state);
     if (state.page === "lobby") return Lobby(state);
     if (state.page === "over") return GameOver(state);
@@ -67,7 +68,7 @@ createApp({
 createApp({
   root: document.getElementById("chat"),
   store,
-  view: (state) => (state.page === "nickname" ? [] : Chat(state)),
+  view: (state) => (state.page === "nickname" || state.page === "lost" ? [] : Chat(state)),
   select: (state) => ({
     page: state.page,
     players: state.players,

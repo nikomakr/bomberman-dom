@@ -1,6 +1,6 @@
 import { h } from "/framework/index.js";
 import { backToStart } from "../store.js";
-import { send } from "../net/socket.js";
+import { send, connect } from "../net/socket.js";
 
 // The end of a match: who won and everyone's final score, highest first,
 // and a way back to the nickname page to play again.
@@ -56,6 +56,30 @@ export function GameOver(state) {
       ),
     ),
     h("button", { class: "game-over-button", on: { click: onBackToStart } }, "Back to start"),
+  ]);
+}
+
+/**
+ * Opens a new connection and goes back to the nickname page, using the same
+ * reset as the end of a match.
+ */
+function onReconnect() {
+  connect();
+  backToStart();
+  window.location.hash = "#/";
+}
+
+/**
+ * Shown when the connection to the server drops. The game has already been
+ * stopped; Back to start connects again so the player can join a new game.
+ *
+ * @returns {Object} A virtual node.
+ */
+export function ConnectionLost() {
+  return h("main", { class: "game-over", role: "alert" }, [
+    h("h1", {}, "Connection lost"),
+    h("p", { class: "game-over-note" }, "The game cannot reach the server. Check the server is running, then go back to start."),
+    h("button", { class: "game-over-button", on: { click: onReconnect } }, "Back to start"),
   ]);
 }
 

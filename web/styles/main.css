@@ -215,6 +215,11 @@ body {
   font-size: var(--font-size-heading);
 }
 
+.game-over-note {
+  margin: 0 0 var(--space-xl);
+  color: var(--color-muted);
+}
+
 .game-over-scores {
   display: grid;
   gap: var(--space-sm);
