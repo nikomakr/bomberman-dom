@@ -2,8 +2,8 @@ import { h } from '/framework/index.js';
 import { store } from '../store.js';
 
 // The scoreboard above the map: how long the match has run, and every
-// player's score and lives. The timer measures real time but skips pauses,
-// and starts again from 0 on a restart.
+// player's score and lives, each in that player's colour. The timer measures
+// real time but skips pauses, and starts again from 0 on a restart.
 
 const TIMER_STEP = 250; // ms between checks; Chrome may slow this in hidden windows
 
@@ -62,7 +62,7 @@ export function Hud(state) {
   if (state.page !== 'game') return [];
 
   const players = state.players.map((player) =>
-    h('div', { class: 'hud-player', key: player.id }, [
+    h('div', { class: `hud-player hud-player-${player.colour}`, key: player.id }, [
       h('span', { class: 'hud-player-name' }, player.nickname),
       h('span', {}, `Score: ${state.score[player.id] ?? 0}`),
       h('span', {}, `Lives: ${state.lives[player.id] ?? 0}`),

@@ -54,6 +54,7 @@ createApp({
   select: (state) => ({
     page: state.page,
     nickname: state.nickname,
+    nicknameLength: state.nicknameLength,
     error: state.error,
     players: state.players,
     countdown: state.countdown,
@@ -69,6 +70,7 @@ createApp({
   view: (state) => (state.page === "nickname" ? [] : Chat(state)),
   select: (state) => ({
     page: state.page,
+    players: state.players,
     messages: state.messages,
     chatLength: state.chatLength,
   }),

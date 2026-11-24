@@ -13,6 +13,7 @@ export const store = createStore({
   countdown: null, // { phase, seconds } while the server counts, otherwise null
   messages: [],
   chatLength: 0,
+  nicknameLength: 0, // characters typed in the nickname box, for its counter
   error: null,
   connection: "connecting",
   map: null,
@@ -40,14 +41,30 @@ export function setCountdown(phase, seconds) {
   store.setState({ countdown: { phase, seconds } });
 }
 
+// The chat keeps only the newest messages, so a long match does not keep
+// growing the page.
+const MAX_MESSAGES = 50;
+let nextMessageId = 0;
+
+// Gives a message an id that never changes, so the list can drop old
+// messages without redrawing the ones that stay.
+function withId(message) {
+  nextMessageId += 1;
+  return { ...message, id: nextMessageId };
+}
+
 export function addMessage(message) {
   store.setState((state) => ({
-    messages: [...state.messages, message],
+    messages: [...state.messages, withId(message)].slice(-MAX_MESSAGES),
   }));
 }
 
 export function setMessages(messages) {
-  store.setState({ messages });
+  store.setState({ messages: messages.slice(-MAX_MESSAGES).map(withId) });
+}
+
+export function setNicknameLength(nicknameLength) {
+  store.setState({ nicknameLength });
 }
 
 export function setChatLength(chatLength) {
@@ -97,6 +114,7 @@ export function backToStart() {
   store.setState({
     page: "nickname",
     nickname: "",
+    nicknameLength: 0,
     players: [],
     countdown: null,
     error: null,
