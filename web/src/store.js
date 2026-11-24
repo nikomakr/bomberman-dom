@@ -125,6 +125,20 @@ export function backToStart() {
   });
 }
 
+// The connection to the server dropped: forget the match and show the
+// "Connection lost" page.
+export function connectionLost() {
+  store.setState({
+    page: "lost",
+    players: [],
+    countdown: null,
+    map: null,
+    out: false,
+    result: null,
+    paused: null,
+  });
+}
+
 // Pauses or continues the match on this page, with who did it.
 export function setPaused(data) {
   store.setState({ paused: data.paused ? { by: data.by } : null });

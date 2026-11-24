@@ -10,16 +10,25 @@ import {
   endGame,
   setPaused,
   backToStart,
+  connectionLost,
   store,
 } from "../store.js";
-import { startMatch, updatePlayers } from "../game/players.js";
+import { startMatch, updatePlayers, clearPlayers } from "../game/players.js";
 
 const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+const url = `${protocol}//${window.location.host}/ws`;
 
-const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+let socket = null;
+
+// True while the page itself is closing (reload, close tab, leave the site),
+// so that closing the connection then is not reported as a lost connection.
+let leavingPage = false;
+window.onpagehide = () => {
+  leavingPage = true;
+};
 
 export function send(type, data) {
-  if (socket.readyState === WebSocket.OPEN) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type, data }));
   }
 }
@@ -51,11 +60,7 @@ const dispatch = Object.freeze({
   },
 });
 
-socket.onopen = () => {
-  setConnection("open");
-};
-
-socket.onmessage = (event) => {
+function onMessage(event) {
   let message;
 
   try {
@@ -73,8 +78,29 @@ socket.onmessage = (event) => {
   }
 
   dispatch[message.type](message.data);
-};
+}
 
-socket.onclose = () => {
+/**
+ * The connection dropped without the page asking for it (the server stopped,
+ * the network went, the laptop slept). The game stops and the page says so.
+ */
+function onClose() {
   setConnection("closed");
-};
+  if (leavingPage) return;
+  clearPlayers(); // stops prediction and frees every board element
+  connectionLost(); // leaving the game page also stops the loop and input
+}
+
+/**
+ * Opens a new connection to the server. Called once when the page loads, and
+ * again by the Back to start button after the connection was lost.
+ */
+export function connect() {
+  setConnection("connecting");
+  socket = new WebSocket(url);
+  socket.onopen = () => setConnection("open");
+  socket.onmessage = onMessage;
+  socket.onclose = onClose;
+}
+
+connect();
