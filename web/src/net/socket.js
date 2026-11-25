@@ -40,6 +40,8 @@ const dispatch = Object.freeze({
   chat: (data) => addMessage(data),
   error: (data) => setError(data.message),
   start: (data) => {
+    // A chat box that still has focus would swallow the arrow keys.
+    if (document.activeElement !== document.body) document.activeElement.blur();
     startMatch(data);
     startGame(data);
     window.location.hash = "#/game";

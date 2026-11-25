@@ -81,7 +81,8 @@ export function startInput() {
   keys = createKeyState();
   stopKeydown = onGlobal("keydown", onKeyDown);
   lastHeld = 0;
-  seq = 0;
+  // seq keeps counting for the whole visit: the server ignores any input
+  // that is not newer than the last one it saw.
 }
 
 /**
