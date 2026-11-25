@@ -520,6 +520,22 @@ body:has(.board) .chat-messages:empty {
   animation: power-up-pulse 1.2s ease-in-out infinite;
 }
 
+/* Bombs flash before they explode. Opacity only, so the inline transform
+   still places them, and the compositor runs it without repainting. */
+.entity.tile-bomb {
+  animation: bomb-pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes bomb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
 @keyframes power-up-pulse {
   0%,
   100% {

@@ -36,6 +36,14 @@ func serveWS(hub *Hub, lobby *Lobby, w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
+// noCache makes the browser check for a newer copy of every game file on each load, so every player always runs the same, latest code.
+func noCache(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	if _, err := os.Stat(webDir); err != nil {
 		log.Fatalf("%s/ not found: run the server from the repository root", webDir)
@@ -51,7 +59,7 @@ func main() {
 	lobby := NewLobby(hub, DefaultLobbyConfig())
 	go lobby.Run()
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(webDir)))
+	mux.Handle("/", noCache(http.FileServer(http.Dir(webDir))))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWS(hub, lobby, w, r)
 	})
