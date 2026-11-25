@@ -82,7 +82,8 @@ export function setConnection(connection) {
 export function startGame(data) {
   store.setState({
     page: "game",
-    players: data.players,
+    // A player who left before a restart has no lives and is not in this match.
+    players: data.players.filter((player) => player.lives > 0),
     detonator: false,
     lives: Object.fromEntries(data.players.map((player) => [player.id, player.lives])),
     score: Object.fromEntries(data.players.map((player) => [player.id, player.score])),
@@ -103,7 +104,7 @@ export function setOut() {
 export function endGame(data) {
   store.setState({
     page: "over",
-    result: { winner: data.winner, scores: data.scores || [] },
+    result: { winner: data.winner, scores: data.scores || [], reason: data.reason || "" },
     out: false,
     paused: null,
   });
@@ -115,6 +116,8 @@ export function backToStart() {
     page: "nickname",
     nickname: "",
     nicknameLength: 0,
+    messages: [],
+    chatLength: 0,
     players: [],
     countdown: null,
     error: null,

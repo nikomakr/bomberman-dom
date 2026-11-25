@@ -91,7 +91,12 @@ type matchStartData struct {
 type endData struct {
 	Winner *Player     `json:"winner"`
 	Scores []scoreData `json:"scores"`
+	Reason string      `json:"reason,omitempty"` // endHighestScore when the board was cleared
 }
+
+// endHighestScore is the end reason when nothing is left to destroy or
+// collect and two or more players are still in: the highest score wins.
+const endHighestScore = "highestScore"
 
 type stateData struct {
 	Tick       int             `json:"tick"`
@@ -275,8 +280,7 @@ func (m *Match) removePlayer(client *Client) bool {
 	return m.checkForWinner()
 }
 
-// checkForWinner ends the match when one player or none is left. It sends
-// the final state and the end message, then tells the lobby.
+// checkForWinner ends the match when one player or none is left.
 func (m *Match) checkForWinner() bool {
 	var alive []*MatchPlayer
 	for _, p := range m.players {
@@ -288,20 +292,58 @@ func (m *Match) checkForWinner() bool {
 		return false
 	}
 
-	var winner *Player
 	if len(alive) == 1 {
-		winner = &Player{ID: alive[0].ID, Nickname: alive[0].Nickname}
-		log.Printf("match over: %q wins", winner.Nickname)
+		m.finish(alive[0], "")
+	} else {
+		m.finish(nil, "")
+	}
+	return true
+}
+
+// boardCleared reports whether nothing is left to destroy or collect, and no
+// bomb or flame is still going.
+func (m *Match) boardCleared() bool {
+	if len(m.powerUps) > 0 || len(m.bombs) > 0 || len(m.flames) > 0 {
+		return false
+	}
+	for _, tile := range m.gameMap.Tiles {
+		if tile == TileBlock {
+			return false
+		}
+	}
+	return true
+}
+
+// endByScore ends a match whose board is cleared: of the players still in,
+// the highest score wins, then the most lives, then whoever joined first.
+func (m *Match) endByScore() {
+	var best *MatchPlayer
+	for _, p := range m.players {
+		if p.Lives <= 0 {
+			continue
+		}
+		if best == nil || p.Score > best.Score || (p.Score == best.Score && p.Lives > best.Lives) {
+			best = p
+		}
+	}
+	m.finish(best, endHighestScore)
+}
+
+// finish sends the final state and the end message, then tells the lobby.
+func (m *Match) finish(winner *MatchPlayer, reason string) {
+	var w *Player
+	if winner != nil {
+		w = &Player{ID: winner.ID, Nickname: winner.Nickname}
+		log.Printf("match over: %q wins", w.Nickname)
 	} else {
 		log.Printf("match over: no winner")
 	}
 
 	m.sendState()
-	m.sendToPlayers(TypeEnd, endData{Winner: winner, Scores: m.finalScores()})
+	m.sendToPlayers(TypeEnd, endData{Winner: w, Scores: m.finalScores(), Reason: reason})
 	if m.onEnd != nil {
 		m.onEnd()
 	}
-	return true
 }
 
 // onTick steps the match unless it is paused. It reports whether the match is over.
@@ -326,6 +368,10 @@ func (m *Match) step() bool {
 	m.coolFlames()
 	m.tickBombs()
 	if m.burnPlayers() && m.checkForWinner() {
+		return true
+	}
+	if m.boardCleared() {
+		m.endByScore()
 		return true
 	}
 	m.sendState()
