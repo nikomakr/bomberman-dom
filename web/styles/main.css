@@ -28,7 +28,27 @@
 
   /* Shape and layout */
   --radius: 12px;
-  --tile: min(48px, calc((100vw - 32px) / 15), calc((100vh - 220px) / 13));
+  /* Page frame. Narrow screens shrink these at the end of the file. */
+  --page-pad-x: var(--space-md);
+  --page-pad-y: var(--space-xl);
+  --page-gap: var(--space-lg);
+
+  /* In a match, everything stacked with the map has a fixed height, so
+     --tile can give the map exactly the space that is left. */
+  --hud-height: 2.5rem;
+  --pause-bar-height: 2.75rem;
+  --pause-bar-gap: var(--space-sm);
+  --tile-max: 56px;
+  --board-width: calc(100vw - 2 * var(--page-pad-x)); /* the wide layout subtracts the chat */
+  --board-height: calc(
+    100vh - 2 * var(--page-pad-y) - var(--hud-height) - var(--page-gap) -
+      var(--pause-bar-height) - var(--pause-bar-gap)
+  );
+  --tile: min(
+    var(--tile-max),
+    calc(var(--board-width) / 15),
+    calc(var(--board-height) / 13)
+  );
   --content-width: 1200px;
   --focus-outline: 3px solid var(--color-accent);
 }
@@ -52,12 +72,12 @@ body {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-content: start;
-  gap: var(--space-lg);
+  gap: var(--page-gap);
   width: 100%;
   max-width: var(--content-width);
   min-height: 100vh;
   margin: 0 auto;
-  padding: var(--space-xl) var(--space-md);
+  padding: var(--page-pad-y) var(--page-pad-x);
 }
 
 #app,
@@ -243,6 +263,17 @@ body {
   font-weight: 700;
 }
 
+/* A player who was out when the match ended: grey, with a skull. */
+.game-over-out {
+  background: var(--color-panel);
+  border: 1px dashed var(--color-border);
+  color: #9ca3af;
+}
+
+.game-over-skull {
+  margin-right: var(--space-xs);
+}
+
 .game-over-you {
   outline: 2px solid var(--color-text);
   outline-offset: -2px; /* drawn inside the row, so rows never overlap */
@@ -292,8 +323,8 @@ body:has(.board) #app {
   justify-content: center;
   gap: var(--space-lg);
   width: calc(var(--tile) * 15);
-  min-height: 2.75rem; /* the same height paused or not, so the map never moves */
-  margin: var(--space-sm) auto 0;
+  min-height: var(--pause-bar-height); /* the same height paused or not, so the map never moves */
+  margin: var(--pause-bar-gap) auto 0;
   padding: var(--space-xs) var(--space-md);
   border-radius: 8px;
   border: 2px solid transparent;
@@ -566,37 +597,69 @@ body:has(.board) .chat-messages:empty {
 
 /* ---------- Match HUD ---------- */
 
+/* One thin line of fixed height, never wrapping, so the map gets the rest
+   of the screen. Long nicknames are cut with an ellipsis instead. */
 .hud {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: var(--space-md);
   width: calc(var(--tile) * 15); /* the same width as the map */
   max-width: 100%;
+  height: var(--hud-height);
+  container: hud / inline-size; /* names hide when the scoreboard is narrow */
   margin: 0 auto;
-  padding: var(--space-md);
+  padding: 0 var(--space-sm);
+  overflow: hidden;
   background: var(--color-panel);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 8px;
+  font-size: var(--font-size-small);
+  white-space: nowrap;
 }
 
 .hud-time {
+  flex: none;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .hud-players {
   display: grid;
-  grid-template-columns: repeat(2, auto); /* two players per line */
-  gap: var(--space-xs) var(--space-lg);
+  flex: 1;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr); /* every player gets the same share */
+  gap: var(--space-sm);
+  min-width: 0;
 }
 
 .hud-player {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
+  align-items: baseline;
+  gap: 0.3em;
+  min-width: 0;
+  overflow: hidden; /* never runs into the next player */
+}
+
+.hud-player-name {
+  min-width: 1.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+.hud-stat {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A player with no lives left (lost them, or left the match) stays listed,
+   in grey with the name struck through, whatever their colour was. */
+.hud-player-out {
+  color: #6b7280;
+}
+
+.hud-player-out .hud-player-name {
+  text-decoration: line-through;
 }
 
 .player-name {
@@ -626,6 +689,16 @@ body:has(.board) #board {
 
 body:has(.board) #chat {
   grid-area: chat;
+}
+
+/* Side by side, the map shares the width with the chat (at least 260px). */
+@media (min-width: 1101px) {
+  :root {
+    --board-width: calc(
+      min(100vw, var(--content-width)) - 2 * var(--page-pad-x) -
+        var(--page-gap) - 260px
+    );
+  }
 }
 
 /* ---------- Keyboard focus ---------- */
@@ -662,5 +735,43 @@ body:has(.board) #chat {
 
   .lobby-counter {
     font-size: 2rem;
+  }
+}
+
+/* Small windows and phones: a thinner frame and scoreboard, so the map
+   keeps as much of the screen as it can. */
+@media (max-width: 600px), (max-height: 600px) {
+  :root {
+    --page-pad-x: var(--space-xs);
+    --page-pad-y: var(--space-sm);
+    --page-gap: var(--space-sm);
+    --hud-height: 2rem;
+    --pause-bar-height: 2.25rem;
+    --pause-bar-gap: var(--space-xs);
+  }
+
+  .hud {
+    gap: var(--space-sm);
+    padding: 0 var(--space-xs);
+    font-size: 0.75rem;
+  }
+
+  .hud-players {
+    gap: var(--space-xs);
+  }
+
+  .pause-bar {
+    gap: var(--space-sm);
+    padding: 0 var(--space-xs);
+    font-size: 0.75rem;
+  }
+}
+
+/* A narrow scoreboard (a phone, or a short window that shrinks the map)
+   cannot fit the names, so each player is shown by colour only; the full
+   entry is in the tooltip and the aria-labels. */
+@container hud (max-width: 480px) {
+  .hud-player-name {
+    display: none;
   }
 }

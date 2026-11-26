@@ -447,7 +447,7 @@ Then open <http://localhost:65500>.
 
 - **One loop**: `web/src/game/loop.js` runs on `requestAnimationFrame` through `createLoop`. Each frame it reads the held keys, predicts the local player, draws players, bombs, flames and power-ups, and stops there. Values that change every frame never go through the store, so the framework does not redraw the page 60 times a second.
 - **Element pools** (`game/entities.js`): every player, bomb, flame and power-up element is created once, then hidden and reused, so nothing is created or thrown away during a match (no garbage collection pauses).
-- **Transform only**: entities move with `transform: translate3d(...)` in tiles, never with `left` or `top`, so moving does not cause layout or repaint. Only the players keep their own layer (`will-change: transform`); power-ups are layered only while their pulse runs.
+- **Transform only**: entities move with `transform: translate(...)` in tiles, never with `left` or `top`, so moving does not cause layout or repaint. Only the players keep their own layer (`will-change: transform`); power-ups are layered only while their pulse runs.
 - **Prediction** (`game/prediction.js`): your player moves on your screen straight away with the same speed and collision rules as the server. When the server's position arrives, the player is put back there and the key presses of the measured network delay are replayed, so small differences are smoothed and large ones snap.
 - **Less network work**: the server sends `state` only when something changed, and only the players that changed.
 - **Pause**: the loop keeps running while paused, so no frames drop; it just moves nothing.

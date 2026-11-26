@@ -123,6 +123,36 @@ func TestPlayerOutWithNoPowerUpsDropsARandomOne(t *testing.T) {
 	}
 }
 
+func TestPlayerWhoLeavesDropsOneOfTheirPowerUps(t *testing.T) {
+	m, ann, _, _ := newPauseMatch()
+	ann.powerUps = []powerUpKind{powerUpSpeed}
+
+	m.removePlayer(ann.client)
+	pu, ok := m.powerUps[centreCell(ann.Position)]
+	if !ok || pu.kind != powerUpSpeed {
+		t.Fatalf("expected ann's speed power-up where she left, got %+v", pu)
+	}
+}
+
+func TestPlayerWhoLeavesWithNoPowerUpsDropsARandomOne(t *testing.T) {
+	m, ann, _, _ := newPauseMatch()
+
+	m.removePlayer(ann.client)
+	if _, ok := m.powerUps[centreCell(ann.Position)]; !ok {
+		t.Fatal("expected a random power-up where ann left")
+	}
+}
+
+func TestPlayerWhoLeavesAfterBeingOutDropsNothingMore(t *testing.T) {
+	m, ann, _, _ := newPauseMatch()
+	knockOut(m, ann)
+
+	m.removePlayer(ann.client)
+	if len(m.newPowerUps) != 1 {
+		t.Fatalf("expected only the drop from being knocked out, got %d", len(m.newPowerUps))
+	}
+}
+
 func TestLosingALifeDropsNothing(t *testing.T) {
 	m, ann, _, _ := newPauseMatch()
 	m.flames[centreCell(ann.Position)] = &flame{owner: ann, ticks: flameTicks}

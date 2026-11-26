@@ -114,11 +114,15 @@ export function setEntityPosition(entity, x, y) {
 
 /**
  * Runs once per frame: moves only the entities whose position changed.
+ * A 2D translate, so an entity gets no layer of its own just for being
+ * placed: players are promoted by `will-change: transform`, and bombs and
+ * power-ups while their pulse animation runs. Flames never move, so they
+ * stay in the shared layer.
  */
 export function updateEntities() {
   for (const entity of activeEntities) {
     if (!entity.dirty) continue;
-    entity.element.style.transform = `translate3d(calc(${entity.x} * var(--tile)), calc(${entity.y} * var(--tile)), 0)`;
+    entity.element.style.transform = `translate(calc(${entity.x} * var(--tile)), calc(${entity.y} * var(--tile)))`;
     entity.dirty = false;
   }
 }
