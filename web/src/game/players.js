@@ -85,6 +85,7 @@ export function startMatch(data) {
   }
 
   data.players.forEach((player, index) => {
+    if (player.lives <= 0) return; // left before a restart, so not in this match
     players.set(player.id, {
       nickname: player.nickname,
       number: index + 1, // join order: the 1st player is red, the 2nd blue, and so on

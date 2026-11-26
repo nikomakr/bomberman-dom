@@ -43,11 +43,14 @@ function scoreRow(player, isWinner, isYou) {
  * @returns {Object} A virtual node.
  */
 export function GameOver(state) {
-  const { winner, scores } = state.result;
+  const { winner, scores, reason } = state.result;
   const ranked = [...scores].sort((a, b) => b.score - a.score);
 
   return h("main", { class: "game-over" }, [
     h("h1", {}, winner ? `${winner.nickname} wins!` : "Nobody is left standing"),
+    reason === "highestScore"
+      ? h("p", { class: "game-over-note" }, "Nothing was left to destroy or collect, so the highest score among the players still in wins.")
+      : null,
     h(
       "ol",
       { class: "game-over-scores" },

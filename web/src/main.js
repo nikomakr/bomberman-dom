@@ -23,15 +23,41 @@ function hasNickname(routerStore) {
   return false;
 }
 
+/**
+ * Back and Forward cannot leave a running match or the scores screen: the
+ * address is put back, so the board and its timers are never rebuilt.
+ *
+ * @param {{ getState: Function }} routerStore
+ * @returns {boolean} True if the address was put back.
+ */
+function keepMatchPage(routerStore) {
+  const { map, result } = routerStore.getState();
+  if (result) {
+    location.replace("#/over");
+    return true;
+  }
+  if (map) {
+    location.replace("#/game");
+    return true;
+  }
+  return false;
+}
+
 createRouter({
   store,
   routes: {
-    "/": (routerStore) => routerStore.setState({ page: "nickname" }),
+    "/": (routerStore) => {
+      if (!keepMatchPage(routerStore)) routerStore.setState({ page: "nickname" });
+    },
     "/lobby": (routerStore) => {
+      if (keepMatchPage(routerStore)) return;
       if (hasNickname(routerStore)) routerStore.setState({ page: "lobby" });
     },
     "/game": (routerStore) => {
-      if (hasNickname(routerStore)) routerStore.setState({ page: "game" });
+      const { map, result } = routerStore.getState();
+      if (result) location.replace("#/over");
+      else if (!map) location.replace(hasNickname(routerStore) ? "#/lobby" : "#/");
+      else routerStore.setState({ page: "game" });
     },
     "/over": (routerStore) => {
       if (routerStore.getState().result) routerStore.setState({ page: "over" });
@@ -68,7 +94,7 @@ createApp({
 createApp({
   root: document.getElementById("chat"),
   store,
-  view: (state) => (state.page === "nickname" || state.page === "lost" ? [] : Chat(state)),
+  view: (state) => (state.page === "lobby" || state.page === "game" ? Chat(state) : []),
   select: (state) => ({
     page: state.page,
     players: state.players,
