@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand/v2"
+	"strings"
 	"time"
 )
 
@@ -18,7 +19,7 @@ const (
 
 	playerSize      = 0.8  // player box width and height, in tiles
 	baseSpeed       = 4.0  // tiles per second
-	cornerTolerance = 0.4  // how far off a corridor a player can be and still slide in
+	cornerTolerance = 0.65 // how far off a corridor a player can be and still slide into it
 	moveStep        = 0.05 // largest distance checked for collisions at once, in tiles
 	inputQueueSize  = 64   // how many unprocessed inputs can be queued per match
 )
@@ -65,6 +66,7 @@ type MatchPlayer struct {
 	left        bool          // disconnected, so stays out after a restart
 	detonator   bool          // can explode their own bombs early with the Detonator
 	powerUps    []powerUpKind // collected this match; one is dropped when they are out
+	blocked     int           // ticks in a row this player held a direction but could not move
 }
 
 // playerUpdate is the part of a player that can change during a match.
@@ -409,6 +411,11 @@ func (s stateData) isEmpty() bool {
 func (m *Match) move(p *MatchPlayer, dist float64) {
 	dx := axis(p.held.Left, p.held.Right)
 	dy := axis(p.held.Up, p.held.Down)
+	if dx == 0 && dy == 0 {
+		p.blocked = 0
+		return
+	}
+	before := p.Position
 	if dx != 0 && dy != 0 {
 		dist *= math.Sqrt2 / 2 // moving diagonally is not faster
 	}
@@ -418,9 +425,61 @@ func (m *Match) move(p *MatchPlayer, dist float64) {
 	if dy != 0 {
 		m.moveAxis(p, false, dy, dist)
 	}
+	if p.Position != before {
+		p.blocked = 0
+		return
+	}
+	p.blocked++
+	if p.blocked == tickRate {
+		log.Printf("%q held %s for 1 s but could not move from (%.3f, %.3f)\n%s",
+			p.Nickname, p.held.keys(), p.Position.X, p.Position.Y, m.around(p.Position))
+	}
 }
 
-// moveAxis moves along one axis in small steps and stops flush against anything solid. If the player cannot move at all, it is nudged towards the nearest corridor centre, so turning a corner feels smooth.
+// keys lists the held directions, for the log.
+func (in inputData) keys() string {
+	var keys []string
+	for _, k := range []struct {
+		held bool
+		name string
+	}{{in.Up, "up"}, {in.Down, "down"}, {in.Left, "left"}, {in.Right, "right"}} {
+		if k.held {
+			keys = append(keys, k.name)
+		}
+	}
+	return strings.Join(keys, "+")
+}
+
+// around draws the 3 by 3 cells around a player for the log: # wall,
+// B block, o bomb, . empty, with P on the player's centre cell.
+func (m *Match) around(pos Position) string {
+	centre := centreCell(pos)
+	var b strings.Builder
+	for row := centre.row - 1; row <= centre.row+1; row++ {
+		b.WriteString("    ")
+		for col := centre.col - 1; col <= centre.col+1; col++ {
+			_, bomb := m.bombs[gridCell{col: col, row: row}]
+			switch {
+			case col == centre.col && row == centre.row:
+				b.WriteByte('P')
+			case m.gameMap.Tile(col, row) == TileWall:
+				b.WriteByte('#')
+			case m.gameMap.Tile(col, row) == TileBlock:
+				b.WriteByte('B')
+			case bomb:
+				b.WriteByte('o')
+			default:
+				b.WriteByte('.')
+			}
+		}
+		if row < centre.row+1 {
+			b.WriteByte('\n')
+		}
+	}
+	return b.String()
+}
+
+// moveAxis moves along one axis in small steps and stops flush against anything solid. If the player cannot move at all, they slide towards the open corridor beside them, so turning a corner feels smooth.
 func (m *Match) moveAxis(p *MatchPlayer, horizontal bool, dir, dist float64) {
 	moved := false
 	for remaining := dist; remaining > 0; remaining -= moveStep {
@@ -441,7 +500,7 @@ func (m *Match) moveAxis(p *MatchPlayer, horizontal bool, dir, dist float64) {
 		return
 	}
 
-	x, y := m.grid.NudgeToCorridor(p.Position.X, p.Position.Y, playerSize, playerSize, cornerTolerance, horizontal)
+	x, y := m.grid.NudgeToCorridor(p.Position.X, p.Position.Y, playerSize, playerSize, cornerTolerance, horizontal, dir)
 	p.Position = Position{X: approach(p.Position.X, x, dist), Y: approach(p.Position.Y, y, dist)}
 }
 
@@ -468,12 +527,15 @@ func approach(from, to, maxStep float64) float64 {
 }
 
 // changedPlayers returns the players whose state differs from the last
-// update sent, and remembers the new values.
+// update sent, and remembers the new values. A player who holds a direction
+// but cannot move is sent too, even though nothing changed: their screen may
+// have moved them, and this puts them back within one tick, instead of
+// letting the two drift apart until the key is released.
 func (m *Match) changedPlayers() []playerUpdate {
 	var changed []playerUpdate
 	for _, p := range m.players {
 		u := p.update()
-		if m.lastSent[p.ID] != u {
+		if m.lastSent[p.ID] != u || p.blocked > 0 {
 			changed = append(changed, u)
 			m.lastSent[p.ID] = u
 		}

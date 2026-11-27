@@ -93,6 +93,12 @@ func (c *Client) handle(data []byte) {
 		c.lobby.Input(c, input)
 	case TypeBomb:
 		c.lobby.Bomb(c)
+	case TypeFPS:
+		if report, ok := decodeFPS(msg.Data); ok {
+			log.Print(report)
+		}
+	case TypeSnap:
+		log.Printf("snap %s", cut(string(msg.Data), 600))
 	case TypeDetonate:
 		c.lobby.Detonate(c)
 	case TypeBackToStart:

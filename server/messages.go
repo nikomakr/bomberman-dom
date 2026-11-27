@@ -18,13 +18,15 @@ const (
 	TypePause       = "pause"
 	TypeBackToStart = "backToStart"
 	TypeDetonate    = "detonate"
+	TypeFPS         = "fps"  // optional frame rate report from a tab opened with ?fps
+	TypeSnap        = "snap" // optional report of a player snapping back, from a tab opened with ?fps
 )
 
 var knownTypes = map[string]bool{
 	TypeJoin: true, TypeLobby: true, TypeCountdown: true, TypeStart: true,
 	TypeState: true, TypeInput: true, TypeBomb: true, TypeChat: true,
 	TypeError: true, TypeEnd: true, TypePause: true, TypeBackToStart: true,
-	TypeDetonate: true,
+	TypeDetonate: true, TypeFPS: true, TypeSnap: true,
 }
 
 // Message is the envelope for every WebSocket message:

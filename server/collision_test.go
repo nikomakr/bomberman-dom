@@ -159,7 +159,7 @@ func TestCollisionGridNudgeToCorridor(t *testing.T) {
 	}
 	grid := NewCollisionGrid(gameMap)
 
-	x, y := grid.NudgeToCorridor(1.1, 1.1, 0.6, 0.6, 0.2, true)
+	x, y := grid.NudgeToCorridor(1.1, 1.1, 0.6, 0.6, 0.2, true, 0)
 	if math.Abs(y-1.2) > 1e-9 {
 		t.Errorf("horizontal movement should nudge y to 1.2, got %v", y)
 	}
@@ -167,7 +167,7 @@ func TestCollisionGridNudgeToCorridor(t *testing.T) {
 		t.Errorf("horizontal movement should not change x, got %v", x)
 	}
 
-	x, y = grid.NudgeToCorridor(1.1, 1.1, 0.6, 0.6, 0.05, true)
+	x, y = grid.NudgeToCorridor(1.1, 1.1, 0.6, 0.6, 0.05, true, 0)
 	if math.Abs(y-1.1) > 1e-9 {
 		t.Errorf("nudge beyond maxNudge should leave y unchanged, got %v", y)
 	}

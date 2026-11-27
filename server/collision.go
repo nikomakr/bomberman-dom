@@ -108,28 +108,55 @@ func (g *CollisionGrid) CanOccupy(x, y, width, height float64) bool {
 	return true
 }
 
-// NudgeToCorridor gently aligns a player with a corridor centre.
+// NudgeToCorridor tells a player who is blocked where to slide so they can
+// keep going: to the centre of one of the lanes their box overlaps (rows when
+// moving left or right, columns when moving up or down) whose next cell in the
+// direction of travel is free. The nearer lane is tried first, so a player
+// pressing right at a corner turns into the corridor that is open, not the one
+// that happens to be closer. dir is -1 or 1 along the axis of travel; with 0
+// the cell ahead is not checked. The position comes back unchanged if no lane
+// within maxNudge is open.
 func (g *CollisionGrid) NudgeToCorridor(
 	x, y, width, height, maxNudge float64,
-	movingHorizontal bool,
+	movingHorizontal bool, dir float64,
 ) (float64, float64) {
 	if g == nil || g.gameMap == nil || width <= 0 || height <= 0 || maxNudge < 0 {
 		return x, y
 	}
 
-	if movingHorizontal {
-		centerY := y + height/2
-		targetY := math.Round(centerY-0.5) + 0.5 - height/2
-		if math.Abs(targetY-y) <= maxNudge && g.CanOccupy(x, targetY, width, height) {
-			return x, targetY
-		}
-		return x, y
+	const epsilon = 1e-9
+
+	// along is the axis of travel, across the axis the player slides on.
+	along, across, length, breadth := x, y, width, height
+	if !movingHorizontal {
+		along, across, length, breadth = y, x, height, width
 	}
 
-	centerX := x + width/2
-	targetX := math.Round(centerX-0.5) + 0.5 - width/2
-	if math.Abs(targetX-x) <= maxNudge && g.CanOccupy(targetX, y, width, height) {
-		return targetX, y
+	offset := (1 - breadth) / 2 // a lane centre, measured from the lane's edge
+	first := int(math.Floor(across + epsilon))
+	last := int(math.Floor(across + breadth - epsilon))
+	lanes := [2]int{first, last}
+	if math.Abs(float64(last)+offset-across) < math.Abs(float64(first)+offset-across) {
+		lanes = [2]int{last, first}
+	}
+
+	ahead := int(math.Floor(along+length-epsilon)) + 1
+	if dir < 0 {
+		ahead = int(math.Floor(along+epsilon)) - 1
+	}
+
+	for _, lane := range lanes {
+		target := float64(lane) + offset
+		if math.Abs(target-across) > maxNudge+epsilon {
+			continue
+		}
+		if movingHorizontal {
+			if g.CanOccupy(x, target, width, height) && (dir == 0 || g.CanEnter(ahead, lane)) {
+				return x, target
+			}
+		} else if g.CanOccupy(target, y, width, height) && (dir == 0 || g.CanEnter(lane, ahead)) {
+			return target, y
+		}
 	}
 
 	return x, y
