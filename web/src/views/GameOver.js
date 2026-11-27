@@ -17,21 +17,28 @@ function onBackToStart() {
 }
 
 /**
- * One row of the scores: the winner's row is gold, and this player's own row
- * is outlined and marked "(you)", so everyone finds themselves.
+ * One row of the scores: the winner's row is gold, a player who was out
+ * (no lives left) is greyed out with a skull, and this player's own row is
+ * outlined and marked "(you)", so everyone finds themselves.
  *
- * @param {{ id: number, nickname: string, score: number }} player
+ * @param {{ id: number, nickname: string, score: number, lives: number }} player
  * @param {boolean} isWinner
  * @param {boolean} isYou
  * @returns {Object} A virtual node.
  */
 function scoreRow(player, isWinner, isYou) {
+  const isOut = player.lives === 0;
   let className = "game-over-score";
   if (isWinner) className += " game-over-winner";
+  if (isOut) className += " game-over-out";
   if (isYou) className += " game-over-you";
 
+  const name = isYou ? `${player.nickname} (you)` : player.nickname;
   return h("li", { key: player.id, class: className }, [
-    h("span", {}, isYou ? `${player.nickname} (you)` : player.nickname),
+    h("span", {}, [
+      isOut ? h("span", { class: "game-over-skull", "aria-label": "out" }, "☠") : null,
+      name,
+    ]),
     h("span", {}, String(player.score)),
   ]);
 }
@@ -49,7 +56,7 @@ export function GameOver(state) {
   return h("main", { class: "game-over" }, [
     h("h1", {}, winner ? `${winner.nickname} wins!` : "Nobody is left standing"),
     reason === "highestScore"
-      ? h("p", { class: "game-over-note" }, "Nothing was left to destroy or collect, so the highest score among the players still in wins.")
+      ? h("p", { class: "game-over-note" }, "Nothing was left to destroy or collect. The winner is the player still alive with the highest score.")
       : null,
     h(
       "ol",

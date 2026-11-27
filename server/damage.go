@@ -30,6 +30,7 @@ type scoreData struct {
 	ID       int    `json:"id"`
 	Nickname string `json:"nickname"`
 	Score    int    `json:"score"`
+	Lives    int    `json:"lives"` // 0 for a player who was out when the match ended
 }
 
 // lightFlames puts a flame on every cell an explosion hit. A newer flame on the same cell replaces the older one.
@@ -87,7 +88,7 @@ func centreCell(pos Position) gridCell {
 func (m *Match) finalScores() []scoreData {
 	scores := make([]scoreData, 0, len(m.players))
 	for _, p := range m.players {
-		scores = append(scores, scoreData{ID: p.ID, Nickname: p.Nickname, Score: p.Score})
+		scores = append(scores, scoreData{ID: p.ID, Nickname: p.Nickname, Score: p.Score, Lives: p.Lives})
 	}
 	return scores
 }

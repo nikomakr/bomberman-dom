@@ -264,8 +264,9 @@ func (m *Match) applyInput(in playerInput) {
 	p.held = in.input
 }
 
-// removePlayer puts a player who left out of the game. It reports whether
-// the match is now over.
+// removePlayer puts a player who left out of the game. Leaving counts as
+// dying, so they drop a power-up like a player who lost their last life. It
+// reports whether the match is now over.
 func (m *Match) removePlayer(client *Client) bool {
 	p := m.playerFor(client)
 	if p == nil {
@@ -273,10 +274,11 @@ func (m *Match) removePlayer(client *Client) bool {
 	}
 	p.left = true
 	if p.Lives == 0 {
-		return false
+		return false // already out, and already dropped one
 	}
 	p.Lives = 0
 	log.Printf("%q left the match", p.Nickname)
+	m.dropOnDeath(p)
 	return m.checkForWinner()
 }
 

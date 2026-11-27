@@ -61,20 +61,28 @@ function stopTimer() {
 export function Hud(state) {
   if (state.page !== 'game') return [];
 
-  const players = state.players.map((player) =>
-    h('div', { class: `hud-player hud-player-${player.colour}`, key: player.id }, [
+  // One short entry per player, so the scoreboard stays a single thin line
+  // and the map keeps the rest of the screen. Labels spell out the symbols.
+  const players = state.players.map((player) => {
+    const score = state.score[player.id] ?? 0;
+    const lives = state.lives[player.id] ?? 0;
+    return h('div', {
+      class: `hud-player hud-player-${player.colour}${lives > 0 ? '' : ' hud-player-out'}`,
+      key: player.id,
+      title: `${player.nickname}: ${lives} lives, score ${score}`,
+    }, [
       h('span', { class: 'hud-player-name' }, player.nickname),
-      h('span', {}, `Score: ${state.score[player.id] ?? 0}`),
-      h('span', {}, `Lives: ${state.lives[player.id] ?? 0}`),
-    ]),
-  );
+      h('span', { class: 'hud-stat', 'aria-label': `${lives} lives` }, `♥${lives}`),
+      h('span', { class: 'hud-stat', 'aria-label': `score ${score}` }, `★${score}`),
+    ]);
+  });
 
   return h('section', {
     class: 'hud',
     onMount: startTimer,
     onUnmount: stopTimer,
   }, [
-    h('div', { class: 'hud-time' }, `Time: ${formatTime(state.time)}`),
+    h('div', { class: 'hud-time', title: 'Time played' }, formatTime(state.time)),
     h('div', { class: 'hud-players' }, players),
   ]);
 }
