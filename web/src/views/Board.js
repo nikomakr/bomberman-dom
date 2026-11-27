@@ -3,6 +3,7 @@
 import { h, memo } from '/framework/index.js';
 import { startLoop, stopLoop } from '../game/loop.js';
 import { PauseBar } from './PauseBar.js';
+import { setTilesLayer } from '../game/tiles.js';
 
 // The engine-owned layer for moving elements. The view never adds children to it.
 let entitiesLayer = null;
@@ -37,18 +38,27 @@ export function Board(state) {
 
   const map = state.map;
 
- const tiles = map
-  ? map.tiles.map((type, index) =>
-      h('div', {
-        key: index,
-        class: `tile tile-${type === 'empty' ? 'floor' : type}`,
-      }),
-    )
-  : [];
+  // The tiles are built once per map. Destroyed blocks are drawn by
+  // game/tiles.js, so a pause or a new power-up never rebuilds them. The map
+  // is also the key: a restart brings a new map, so new tile elements.
+  const tiles = memo(
+    () =>
+      h(
+        'div',
+        { class: 'tiles', ref: setTilesLayer },
+        map
+          ? map.tiles.map((type, index) =>
+              h('div', { key: index, class: `tile tile-${type === 'empty' ? 'floor' : type}` }),
+            )
+          : [],
+      ),
+    [map],
+    map,
+  );
 
   return [
     h('div', { class: 'board', onMount: () => startLoop(entitiesLayer), onUnmount: stopLoop }, [
-      h('div', { class: 'tiles' }, tiles),
+      tiles,
       memo(() => h('div', { class: 'entities', ref: setEntitiesLayer }), []),
     ]),
     PauseBar(state),

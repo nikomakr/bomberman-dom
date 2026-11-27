@@ -11,6 +11,15 @@ const CLASSES = {
 };
 
 const pools = { players: [], bombs: [], flames: [], powerUps: [] };
+
+// How many elements of each kind are made before the match starts, so the
+// first explosions do not have to create them. More are made only if a
+// match ever needs them.
+const POOL_SIZES = { players: 4, bombs: 24, flames: 96, powerUps: 32 };
+
+// The class of a hidden element: no tileset position and no animation, so a
+// pooled bomb or power-up does not keep pulsing while nobody can see it.
+const HIDDEN_CLASS = "tile entity";
 const activeEntities = new Set();
 let entitiesContainer = null;
 
@@ -24,13 +33,17 @@ export function initEntityPools(container) {
   if (!container || container === entitiesContainer) return;
   entitiesContainer = container;
   activeEntities.clear();
-  Object.values(pools).forEach((pool) => {
+  Object.entries(pools).forEach(([type, pool]) => {
     pool.length = 0;
+    for (let i = 0; i < POOL_SIZES[type]; i++) {
+      pool.push(createPooledElement(type));
+    }
   });
 }
 
 function createPooledElement(type) {
   const element = document.createElement("div");
+  element.className = HIDDEN_CLASS;
   element.style.visibility = "hidden";
   if (type === "players") {
     // The nickname label is a child of the player, so it moves with it.
@@ -83,6 +96,7 @@ export function releaseEntity(entity) {
   if (!entity || !activeEntities.has(entity)) return;
   activeEntities.delete(entity);
   entity.element.style.visibility = "hidden";
+  entity.element.className = HIDDEN_CLASS;
   pools[entity.type].push(entity.element);
 }
 

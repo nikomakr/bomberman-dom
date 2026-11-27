@@ -3,6 +3,7 @@
 import { acquireEntity, releaseEntity } from "./entities.js";
 
 import { destroyBlocks } from "../store.js";
+import { drawFloor } from "./tiles.js";
 
 const FLAME_DURATION = 500;
 
@@ -47,9 +48,9 @@ export function applyEntityChanges(data) {
     }
   }
 
-  // Turn every destroyed block into floor in one store update.
+  // Turn every destroyed block into floor, changing only those tiles.
   if (data.destroyed && data.destroyed.length > 0) {
-    destroyBlocks(data.destroyed);
+    drawFloor(destroyBlocks(data.destroyed));
   }
 }
 

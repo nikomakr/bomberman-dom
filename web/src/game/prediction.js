@@ -14,7 +14,7 @@
 // Copied from the server; if these differ, the player rubber-bands.
 const START_SPEED = 4; // tiles per second, until a Speed power-up
 const MOVE_STEP = 0.05; // largest distance checked for collisions at once
-const CORNER_TOLERANCE = 0.4; // how far off a corridor a player still slides in
+const CORNER_TOLERANCE = 0.65; // how far off a corridor a player still slides into it
 const EPSILON = 1e-9;
 
 const SNAP_DISTANCE = 1; // tiles; a bigger difference snaps at once
@@ -41,6 +41,16 @@ const held = { up: false, down: false, left: false, right: false };
 let history = [];
 let lastConfirmed = 0; // highest seq the server has confirmed
 let delay = 0; // measured seconds between sending an input and its confirmation
+let onSnap = null; // optional: told about every snap, for the ?fps reports
+
+/**
+ * Sets a function to call whenever the player snaps to the server's position.
+ *
+ * @param {Function|null} listener
+ */
+export function setSnapListener(listener) {
+  onSnap = listener;
+}
 
 function isBlocked(col, row) {
   if (col < 0 || row < 0 || col >= columns || row >= rows) return true;
@@ -98,26 +108,38 @@ function approach(from, to, maxStep) {
   return from + Math.sign(to - from) * maxStep;
 }
 
-// Same as NudgeToCorridor on the server.
-function nudgeTarget(horizontal) {
-  if (horizontal) {
-    const target = Math.round(position.y + size / 2 - 0.5) + 0.5 - size / 2;
-    if (
-      Math.abs(target - position.y) <= CORNER_TOLERANCE &&
-      canOccupy(position.x, target)
-    ) {
+function isFree(col, row) {
+  return !isBlocked(col, row) && !bombs.has(row * columns + col);
+}
+
+// Same as NudgeToCorridor on the server: of the lanes the box overlaps, the
+// centre of the nearer one whose next cell in the direction of travel is
+// free; the current position if neither is.
+function nudgeTarget(horizontal, direction) {
+  const along = horizontal ? position.x : position.y;
+  const across = horizontal ? position.y : position.x;
+  const offset = (1 - size) / 2;
+  const first = Math.floor(across + EPSILON);
+  const last = Math.floor(across + size - EPSILON);
+  const lanes =
+    Math.abs(last + offset - across) < Math.abs(first + offset - across)
+      ? [last, first]
+      : [first, last];
+  const ahead =
+    direction < 0
+      ? Math.floor(along + EPSILON) - 1
+      : Math.floor(along + size - EPSILON) + 1;
+
+  for (const lane of lanes) {
+    const target = lane + offset;
+    if (Math.abs(target - across) > CORNER_TOLERANCE + EPSILON) continue;
+    if (horizontal) {
+      if (canOccupy(position.x, target) && isFree(ahead, lane)) return target;
+    } else if (canOccupy(target, position.y) && isFree(lane, ahead)) {
       return target;
     }
-    return position.y;
   }
-  const target = Math.round(position.x + size / 2 - 0.5) + 0.5 - size / 2;
-  if (
-    Math.abs(target - position.x) <= CORNER_TOLERANCE &&
-    canOccupy(target, position.y)
-  ) {
-    return target;
-  }
-  return position.x;
+  return across;
 }
 
 // Same as moveAxis on the server.
@@ -135,9 +157,9 @@ function moveAxis(horizontal, direction, distance) {
   if (moved) return;
 
   if (horizontal) {
-    position.y = approach(position.y, nudgeTarget(true), distance);
+    position.y = approach(position.y, nudgeTarget(true, direction), distance);
   } else {
-    position.x = approach(position.x, nudgeTarget(false), distance);
+    position.x = approach(position.x, nudgeTarget(false, direction), distance);
   }
 }
 
@@ -264,6 +286,17 @@ export function reconcile(serverPosition, lastInput) {
   correction.x = shownX - position.x;
   correction.y = shownY - position.y;
   if (Math.hypot(correction.x, correction.y) > SNAP_DISTANCE) {
+    if (onSnap) {
+      onSnap({
+        shown: { x: shownX, y: shownY },
+        server: { x: serverPosition.x, y: serverPosition.y },
+        replayed: { x: position.x, y: position.y },
+        lastInput,
+        delay,
+        held: { ...held },
+        bombs: [...bombs].map((cell) => [cell % columns, Math.floor(cell / columns)]),
+      });
+    }
     correction.x = 0;
     correction.y = 0;
   }

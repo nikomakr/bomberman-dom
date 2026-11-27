@@ -147,26 +147,26 @@ export function setPaused(data) {
   store.setState({ paused: data.paused ? { by: data.by } : null });
 }
 
-// Turns destroyed blocks into floor in one update, so the board redraws once
-// per message however many blocks a chain explosion breaks.
+// Turns destroyed blocks into floor in the stored map and returns the index of
+// every tile that changed. The board draws those tiles itself (game/tiles.js),
+// so the store is not told: telling it would rebuild and compare all 195
+// tiles on every explosion. The stored map is still kept up to date, so a
+// board drawn again later shows the right tiles.
 export function destroyBlocks(cells) {
-  store.setState((state) => {
-    if (!state.map || cells.length === 0) return;
+  const { map } = store.getState();
+  if (!map || cells.length === 0) return [];
 
-    const { columns, rows } = state.map;
-    const tiles = state.map.tiles.slice();
-    let changed = false;
+  const { columns, rows, tiles } = map;
+  const changed = [];
 
-    for (const { col, row } of cells) {
-      if (col < 0 || row < 0 || col >= columns || row >= rows) continue;
-      const index = row * columns + col;
-      if (tiles[index] !== "empty") {
-        tiles[index] = "empty";
-        changed = true;
-      }
+  for (const { col, row } of cells) {
+    if (col < 0 || row < 0 || col >= columns || row >= rows) continue;
+    const index = row * columns + col;
+    if (tiles[index] !== "empty") {
+      tiles[index] = "empty";
+      changed.push(index);
     }
+  }
 
-    if (!changed) return;
-    return { map: { ...state.map, tiles } };
-  });
+  return changed;
 }

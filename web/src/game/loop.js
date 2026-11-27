@@ -4,9 +4,12 @@ import { createLoop, createFpsMeter } from "/framework/index.js";
 import { initEntityPools, updateEntities } from "./entities.js";
 import { drawPlayers } from "./players.js";
 import { startInput, readInput, stopInput, releaseInput } from "./input.js";
-import { updatePrediction } from "./prediction.js";
+import { updatePrediction, setSnapListener } from "./prediction.js";
+
+setSnapListener(recordSnap);
 import { updateEffects } from "./effects.js";
 import { store } from "../store.js";
+import { recordFrame, recordSnap } from "./fpsReport.js";
 
 // Shows the frame rate while developing.
 const SHOW_FPS = false;
@@ -16,6 +19,8 @@ const SHOW_FPS = false;
  * @param {number} delta - Milliseconds since the previous frame.
  */
 function update(delta) {
+  recordFrame(delta);
+
   // Paused: the loop keeps running, so no frames drop, but nothing moves.
   if (store.getState().paused) {
     releaseInput();
